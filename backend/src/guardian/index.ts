@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import fs from "node:fs";
 import { config } from "../config.js";
-import { getConnection, idl } from "../solana.js";
+import { getConnection, loadKeypair, idl } from "../solana.js";
 import { getDb, preparedStatements } from "../db.js";
 import { decryptPacket } from "./crypto.js";
 import { submitRevealDefence } from "../utils/reveal.js";
@@ -30,8 +30,7 @@ export function startGuardian(): boolean {
 
   try {
     // Load keypair
-    const keyData = JSON.parse(fs.readFileSync(config.guardianKeypairPath, "utf-8"));
-    guardianKeypair = Keypair.fromSecretKey(Uint8Array.from(keyData));
+    guardianKeypair = loadKeypair(config.guardianKeypairPath, "GUARDIAN_KEYPAIR");
 
     // Parse master key (64-char hex string → 32-byte Buffer)
     masterKey = Buffer.from(config.guardianMasterKey, "hex");

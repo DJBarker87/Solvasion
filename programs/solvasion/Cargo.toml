@@ -1,0 +1,23 @@
+[package]
+name = "solvasion"
+version = "0.1.0"
+description = "Solvasion — on-chain territory conquest game"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "solvasion"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.32.1", features = ["init-if-needed"] }
+solana-curve25519 = "2.1"
+solana-msg = "2.1"
+sha2 = "0.10"

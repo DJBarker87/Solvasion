@@ -43,11 +43,39 @@ export function getProgram(): Program {
 
 export function getCrankKeypair(): Keypair {
   if (!crankKeypair) {
-    const keyData = JSON.parse(fs.readFileSync(config.crankKeypairPath, "utf-8"));
-    crankKeypair = Keypair.fromSecretKey(Uint8Array.from(keyData));
+    crankKeypair = loadKeypair(config.crankKeypairPath, "CRANK_KEYPAIR");
     logger.info(`Crank wallet: ${crankKeypair.publicKey.toBase58()}`);
   }
   return crankKeypair;
+}
+
+/**
+ * Load a keypair from a file path or inline JSON env var.
+ * Supports: file path, JSON array string "[1,2,3,...]", or base64-encoded secret key.
+ */
+export function loadKeypair(pathOrJson: string, label = "keypair"): Keypair {
+  let raw: string;
+
+  if (pathOrJson.startsWith("[") || pathOrJson.startsWith("ey")) {
+    // Inline JSON array or base64
+    raw = pathOrJson;
+  } else {
+    // File path
+    raw = fs.readFileSync(pathOrJson, "utf-8").trim();
+  }
+
+  if (raw.startsWith("[")) {
+    const keyData = JSON.parse(raw);
+    return Keypair.fromSecretKey(Uint8Array.from(keyData));
+  }
+
+  // Try base64
+  const decoded = Buffer.from(raw, "base64");
+  if (decoded.length === 64) {
+    return Keypair.fromSecretKey(decoded);
+  }
+
+  throw new Error(`${label}: could not parse as JSON array or base64`);
 }
 
 export function getCrankProvider(): anchor.AnchorProvider {

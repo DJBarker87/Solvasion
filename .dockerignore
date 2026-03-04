@@ -1,0 +1,16 @@
+node_modules
+frontend
+scripts
+tests
+programs
+solvasion-pedersen-benchmark
+docs
+.git
+.claude
+.agents
+*.md
+!backend/db/schema.sql
+target/deploy
+target/debug
+target/release
+target/bpfel-unknown-unknown
