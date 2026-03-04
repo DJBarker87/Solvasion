@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+target/
+dist/
+.anchor/
+
+# Database
+backend/db/*.sqlite
+backend/db/*.sqlite-wal
+backend/db/*.sqlite-shm
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Solana keypairs (never commit)
+*.json.bak
+test-ledger/
+
+# Logs
+*.log
+
+# Root-level SQLite (stray copy)
+/db/
+
+# Claude agent skills (managed by claude-code)
+.agents/
+.claude/
+
+# Lock files (regenerated from package.json)
+# Keep package-lock.json for reproducible builds

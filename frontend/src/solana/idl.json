@@ -1,0 +1,5542 @@
+{
+  "address": "98VnxqEX7SBwLGJVAVeLSfQPEUDGwBEpQWwugvjPeAfM",
+  "metadata": {
+    "name": "solvasion",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Solvasion — on-chain territory conquest game"
+  },
+  "instructions": [
+    {
+      "name": "append_adjacency_data",
+      "discriminator": [
+        27,
+        19,
+        170,
+        130,
+        34,
+        119,
+        106,
+        171
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "adjacency_set",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "edges",
+          "type": {
+            "vec": {
+              "array": [
+                "u64",
+                2
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "append_hex_data",
+      "discriminator": [
+        37,
+        201,
+        241,
+        140,
+        160,
+        95,
+        245,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "valid_hex_set",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_ids",
+          "type": {
+            "vec": "u64"
+          }
+        },
+        {
+          "name": "region_ids",
+          "type": "bytes"
+        }
+      ]
+    },
+    {
+      "name": "claim_hex",
+      "discriminator": [
+        93,
+        161,
+        74,
+        247,
+        18,
+        173,
+        212,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "valid_hex_set"
+        },
+        {
+          "name": "adjacency_set",
+          "docs": [
+            "Optional: adjacency set for validating adjacency when not first claim."
+          ]
+        },
+        {
+          "name": "adjacent_hex",
+          "docs": [
+            "Optional: an adjacent hex owned by the player, for adjacency proof."
+          ],
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "initial_commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "initial_nonce",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "claim_victory",
+      "discriminator": [
+        119,
+        177,
+        84,
+        236,
+        128,
+        134,
+        183,
+        199
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player.player",
+                "account": "Player"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "clear_guardian",
+      "discriminator": [
+        61,
+        110,
+        254,
+        187,
+        25,
+        162,
+        145,
+        159
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "clear_phantom_energy",
+      "discriminator": [
+        252,
+        72,
+        16,
+        56,
+        13,
+        174,
+        109,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player.player",
+                "account": "Player"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "close_season_hex",
+      "discriminator": [
+        146,
+        232,
+        53,
+        219,
+        6,
+        237,
+        152,
+        182
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "close_season_player",
+      "discriminator": [
+        91,
+        117,
+        194,
+        75,
+        230,
+        222,
+        243,
+        145
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player.player",
+                "account": "Player"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "commit_defence",
+      "discriminator": [
+        123,
+        235,
+        209,
+        72,
+        164,
+        242,
+        236,
+        42
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "commitments",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "CommitmentEntry"
+              }
+            }
+          }
+        },
+        {
+          "name": "total_energy_delta",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "create_season",
+      "discriminator": [
+        38,
+        108,
+        29,
+        127,
+        60,
+        126,
+        101,
+        3
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "writable": true
+        },
+        {
+          "name": "season_counters",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CreateSeasonParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "end_season",
+      "discriminator": [
+        167,
+        166,
+        166,
+        109,
+        166,
+        71,
+        15,
+        68
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_chunk",
+      "discriminator": [
+        95,
+        68,
+        163,
+        61,
+        149,
+        222,
+        11,
+        165
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_complete",
+      "discriminator": [
+        244,
+        195,
+        19,
+        152,
+        39,
+        131,
+        200,
+        73
+      ],
+      "accounts": [
+        {
+          "name": "any_signer",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_map_data",
+      "discriminator": [
+        19,
+        175,
+        189,
+        61,
+        107,
+        82,
+        56,
+        17
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "valid_hex_set",
+          "docs": [
+            "The primary ValidHexSet chunk (chunk 0). Must have data."
+          ]
+        },
+        {
+          "name": "adjacency_set",
+          "docs": [
+            "The primary AdjacencySet chunk (chunk 0). Must have data."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "increase_defence",
+      "discriminator": [
+        32,
+        94,
+        69,
+        241,
+        80,
+        15,
+        41,
+        10
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "new_commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_nonce",
+          "type": "u64"
+        },
+        {
+          "name": "delta",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "init_adjacency",
+      "discriminator": [
+        233,
+        205,
+        69,
+        114,
+        67,
+        137,
+        7,
+        111
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "adjacency_set",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "chunk_index",
+          "type": "u8"
+        },
+        {
+          "name": "max_edge_count",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "init_valid_hexes",
+      "discriminator": [
+        172,
+        110,
+        76,
+        2,
+        37,
+        51,
+        63,
+        54
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global_config"
+          ]
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "valid_hex_set",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "chunk_index",
+          "type": "u8"
+        },
+        {
+          "name": "max_hex_count",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "initialize",
+      "discriminator": [
+        175,
+        175,
+        109,
+        31,
+        13,
+        152,
+        155,
+        237
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "global_config",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "join_season",
+      "discriminator": [
+        36,
+        202,
+        202,
+        158,
+        82,
+        34,
+        248,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "launch_attack",
+      "discriminator": [
+        161,
+        182,
+        230,
+        48,
+        238,
+        225,
+        151,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "season_counters",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110,
+                  95,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116,
+                  101,
+                  114,
+                  115
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_attacker",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_defender",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "hex_target.owner",
+                "account": "Hex"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex_target",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "target_hex_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex_origin",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "origin_hex_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "adjacency_set"
+        },
+        {
+          "name": "attack",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  97,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "season_counters.next_attack_id",
+                "account": "SeasonCounters"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "target_hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "origin_hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "energy_committed",
+          "type": "u32"
+        },
+        {
+          "name": "adjacency_chunk_index",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "recommit_defence",
+      "discriminator": [
+        126,
+        112,
+        57,
+        153,
+        40,
+        59,
+        234,
+        143
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "old_energy_amount",
+          "type": "u32"
+        },
+        {
+          "name": "old_blind",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_commitment",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        },
+        {
+          "name": "new_nonce",
+          "type": "u64"
+        },
+        {
+          "name": "new_energy_delta",
+          "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "recover_phantom_energy",
+      "discriminator": [
+        96,
+        233,
+        69,
+        30,
+        6,
+        157,
+        42,
+        139
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phantom_recovery",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  110,
+                  116,
+                  111,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolve_timeout",
+      "discriminator": [
+        149,
+        55,
+        89,
+        144,
+        121,
+        143,
+        48,
+        210
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_defender",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.defender",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_attacker",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.attacker",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.target_hex",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "attack",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  97,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "attack_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "phantom_recovery",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  104,
+                  97,
+                  110,
+                  116,
+                  111,
+                  109
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.defender",
+                "account": "Attack"
+              },
+              {
+                "kind": "account",
+                "path": "attack.target_hex",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "attacker_rent_recipient",
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "attack_id",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "reveal_defence",
+      "discriminator": [
+        86,
+        145,
+        47,
+        202,
+        148,
+        145,
+        243,
+        162
+      ],
+      "accounts": [
+        {
+          "name": "caller",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_defender",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.defender",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_attacker",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.attacker",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "attack.target_hex",
+                "account": "Attack"
+              }
+            ]
+          }
+        },
+        {
+          "name": "attack",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  97,
+                  116,
+                  116,
+                  97,
+                  99,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "attack_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "attacker_rent_recipient",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "attack_id",
+          "type": "u64"
+        },
+        {
+          "name": "energy_amount",
+          "type": "u32"
+        },
+        {
+          "name": "blind",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_active_theatres",
+      "discriminator": [
+        242,
+        97,
+        146,
+        79,
+        94,
+        95,
+        175,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "admin",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "global_config",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  103,
+                  108,
+                  111,
+                  98,
+                  97,
+                  108,
+                  95,
+                  99,
+                  111,
+                  110,
+                  102,
+                  105,
+                  103
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "theatre_regions",
+          "type": {
+            "array": [
+              "u8",
+              3
+            ]
+          }
+        },
+        {
+          "name": "expires_at",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "set_banner",
+      "discriminator": [
+        181,
+        82,
+        167,
+        67,
+        224,
+        158,
+        31,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "nft_mint",
+          "docs": [
+            "The NFT mint account."
+          ]
+        },
+        {
+          "name": "nft_token_account",
+          "docs": [
+            "The player's token account holding the NFT."
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "set_guardian",
+      "discriminator": [
+        147,
+        243,
+        50,
+        121,
+        154,
+        164,
+        50,
+        30
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "guardian_pubkey",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_posture",
+      "discriminator": [
+        171,
+        179,
+        237,
+        229,
+        202,
+        112,
+        110,
+        151
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "posture_type",
+          "type": "u8"
+        },
+        {
+          "name": "posture_target",
+          "type": "u64"
+        },
+        {
+          "name": "posture_target_player",
+          "type": {
+            "option": "pubkey"
+          }
+        }
+      ]
+    },
+    {
+      "name": "set_shield",
+      "discriminator": [
+        97,
+        29,
+        153,
+        161,
+        22,
+        164,
+        206,
+        28
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "shield_start_hour",
+          "type": "u8"
+        }
+      ]
+    },
+    {
+      "name": "update_reputation",
+      "discriminator": [
+        194,
+        220,
+        43,
+        201,
+        54,
+        209,
+        49,
+        178
+      ],
+      "accounts": [
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player.player",
+                "account": "Player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "reputation",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  114,
+                  101,
+                  112,
+                  117,
+                  116,
+                  97,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "player.player",
+                "account": "Player"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdraw_defence",
+      "discriminator": [
+        51,
+        159,
+        198,
+        119,
+        29,
+        58,
+        97,
+        134
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "hex",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  104,
+                  101,
+                  120
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "hex_id"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "hex_id",
+          "type": "u64"
+        },
+        {
+          "name": "energy_amount",
+          "type": "u32"
+        },
+        {
+          "name": "blind",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "AdjacencySet",
+      "discriminator": [
+        218,
+        205,
+        68,
+        80,
+        155,
+        51,
+        168,
+        68
+      ]
+    },
+    {
+      "name": "Attack",
+      "discriminator": [
+        58,
+        39,
+        202,
+        42,
+        106,
+        74,
+        34,
+        0
+      ]
+    },
+    {
+      "name": "GlobalConfig",
+      "discriminator": [
+        149,
+        8,
+        156,
+        202,
+        160,
+        252,
+        176,
+        217
+      ]
+    },
+    {
+      "name": "Hex",
+      "discriminator": [
+        76,
+        195,
+        87,
+        197,
+        195,
+        225,
+        193,
+        184
+      ]
+    },
+    {
+      "name": "PhantomRecovery",
+      "discriminator": [
+        167,
+        223,
+        148,
+        130,
+        218,
+        118,
+        58,
+        208
+      ]
+    },
+    {
+      "name": "Player",
+      "discriminator": [
+        205,
+        222,
+        112,
+        7,
+        165,
+        155,
+        206,
+        218
+      ]
+    },
+    {
+      "name": "Reputation",
+      "discriminator": [
+        55,
+        148,
+        90,
+        71,
+        68,
+        183,
+        193,
+        28
+      ]
+    },
+    {
+      "name": "Season",
+      "discriminator": [
+        76,
+        67,
+        93,
+        156,
+        180,
+        157,
+        248,
+        47
+      ]
+    },
+    {
+      "name": "SeasonCounters",
+      "discriminator": [
+        218,
+        167,
+        22,
+        162,
+        235,
+        153,
+        200,
+        44
+      ]
+    },
+    {
+      "name": "ValidHexSet",
+      "discriminator": [
+        154,
+        131,
+        210,
+        30,
+        217,
+        218,
+        143,
+        182
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "AttackLaunched",
+      "discriminator": [
+        178,
+        243,
+        56,
+        186,
+        26,
+        65,
+        18,
+        218
+      ]
+    },
+    {
+      "name": "AttackRefunded",
+      "discriminator": [
+        188,
+        198,
+        142,
+        124,
+        243,
+        36,
+        48,
+        127
+      ]
+    },
+    {
+      "name": "AttackResolved",
+      "discriminator": [
+        88,
+        71,
+        203,
+        233,
+        103,
+        133,
+        16,
+        123
+      ]
+    },
+    {
+      "name": "ClutchDefence",
+      "discriminator": [
+        117,
+        148,
+        47,
+        178,
+        145,
+        30,
+        119,
+        71
+      ]
+    },
+    {
+      "name": "DefenceIncreased",
+      "discriminator": [
+        78,
+        23,
+        76,
+        220,
+        3,
+        144,
+        135,
+        27
+      ]
+    },
+    {
+      "name": "DefenceRecommitted",
+      "discriminator": [
+        127,
+        77,
+        110,
+        86,
+        181,
+        42,
+        251,
+        153
+      ]
+    },
+    {
+      "name": "DefenceWithdrawn",
+      "discriminator": [
+        176,
+        79,
+        245,
+        1,
+        134,
+        39,
+        204,
+        218
+      ]
+    },
+    {
+      "name": "DefencesCommitted",
+      "discriminator": [
+        58,
+        244,
+        130,
+        224,
+        37,
+        58,
+        194,
+        95
+      ]
+    },
+    {
+      "name": "FinalizationProgress",
+      "discriminator": [
+        184,
+        75,
+        83,
+        230,
+        160,
+        151,
+        106,
+        121
+      ]
+    },
+    {
+      "name": "GuardianCleared",
+      "discriminator": [
+        151,
+        168,
+        9,
+        158,
+        111,
+        178,
+        71,
+        80
+      ]
+    },
+    {
+      "name": "GuardianRevealSubmitted",
+      "discriminator": [
+        147,
+        249,
+        161,
+        148,
+        65,
+        5,
+        240,
+        96
+      ]
+    },
+    {
+      "name": "GuardianSet",
+      "discriminator": [
+        159,
+        49,
+        155,
+        156,
+        176,
+        88,
+        29,
+        190
+      ]
+    },
+    {
+      "name": "HexAccountClosed",
+      "discriminator": [
+        180,
+        248,
+        135,
+        20,
+        174,
+        15,
+        172,
+        65
+      ]
+    },
+    {
+      "name": "HexClaimed",
+      "discriminator": [
+        214,
+        142,
+        58,
+        37,
+        95,
+        72,
+        102,
+        210
+      ]
+    },
+    {
+      "name": "MapFinalized",
+      "discriminator": [
+        160,
+        31,
+        232,
+        172,
+        54,
+        16,
+        3,
+        149
+      ]
+    },
+    {
+      "name": "PhantomEnergyRecovered",
+      "discriminator": [
+        176,
+        238,
+        190,
+        24,
+        156,
+        90,
+        66,
+        156
+      ]
+    },
+    {
+      "name": "PhaseChanged",
+      "discriminator": [
+        178,
+        201,
+        67,
+        222,
+        208,
+        36,
+        213,
+        219
+      ]
+    },
+    {
+      "name": "PlayerAccountClosed",
+      "discriminator": [
+        180,
+        149,
+        176,
+        105,
+        135,
+        145,
+        217,
+        113
+      ]
+    },
+    {
+      "name": "PlayerJoined",
+      "discriminator": [
+        39,
+        144,
+        49,
+        106,
+        108,
+        210,
+        183,
+        38
+      ]
+    },
+    {
+      "name": "PostureSet",
+      "discriminator": [
+        109,
+        224,
+        170,
+        37,
+        62,
+        53,
+        122,
+        155
+      ]
+    },
+    {
+      "name": "RetaliationTokenGranted",
+      "discriminator": [
+        25,
+        214,
+        103,
+        129,
+        139,
+        210,
+        8,
+        91
+      ]
+    },
+    {
+      "name": "RetaliationTokenUsed",
+      "discriminator": [
+        87,
+        196,
+        221,
+        14,
+        35,
+        11,
+        242,
+        133
+      ]
+    },
+    {
+      "name": "SeasonCreated",
+      "discriminator": [
+        69,
+        129,
+        125,
+        162,
+        208,
+        173,
+        40,
+        68
+      ]
+    },
+    {
+      "name": "SeasonEnded",
+      "discriminator": [
+        231,
+        210,
+        35,
+        6,
+        231,
+        92,
+        111,
+        69
+      ]
+    },
+    {
+      "name": "SeasonFinalized",
+      "discriminator": [
+        17,
+        0,
+        146,
+        8,
+        1,
+        167,
+        147,
+        101
+      ]
+    },
+    {
+      "name": "TheatreActivated",
+      "discriminator": [
+        29,
+        9,
+        44,
+        131,
+        8,
+        173,
+        197,
+        95
+      ]
+    },
+    {
+      "name": "TheatreBonusAwarded",
+      "discriminator": [
+        238,
+        191,
+        60,
+        234,
+        150,
+        125,
+        58,
+        39
+      ]
+    },
+    {
+      "name": "VictoryThresholdReached",
+      "discriminator": [
+        138,
+        12,
+        217,
+        81,
+        189,
+        118,
+        75,
+        143
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "ProgramPaused",
+      "msg": "Program is paused"
+    },
+    {
+      "code": 6001,
+      "name": "SeasonEnded",
+      "msg": "Season has ended"
+    },
+    {
+      "code": 6002,
+      "name": "MapNotFinalized",
+      "msg": "Map data has not been finalized"
+    },
+    {
+      "code": 6003,
+      "name": "JoinCutoffPassed",
+      "msg": "Join cutoff has passed"
+    },
+    {
+      "code": 6004,
+      "name": "AlreadyJoined",
+      "msg": "Player has already joined this season"
+    },
+    {
+      "code": 6005,
+      "name": "InsufficientEnergy",
+      "msg": "Insufficient energy"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidHex",
+      "msg": "Hex is not in the valid hex set"
+    },
+    {
+      "code": 6007,
+      "name": "HexAlreadyOwned",
+      "msg": "Hex is already owned"
+    },
+    {
+      "code": 6008,
+      "name": "NotAdjacent",
+      "msg": "Hexes are not adjacent"
+    },
+    {
+      "code": 6009,
+      "name": "EdgeNotInChunk",
+      "msg": "Edge not found in the provided adjacency chunk"
+    },
+    {
+      "code": 6010,
+      "name": "RespawnLimitExceeded",
+      "msg": "Respawn limit exceeded"
+    },
+    {
+      "code": 6011,
+      "name": "NotHexOwner",
+      "msg": "Caller does not own this hex"
+    },
+    {
+      "code": 6012,
+      "name": "CommitmentLocked",
+      "msg": "Commitment is locked due to active attack"
+    },
+    {
+      "code": 6013,
+      "name": "CommitmentExists",
+      "msg": "Hex already has a defence commitment"
+    },
+    {
+      "code": 6014,
+      "name": "NoCommitment",
+      "msg": "Hex has no defence commitment"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidNonce",
+      "msg": "Nonce does not match expected commitment_nonce"
+    },
+    {
+      "code": 6016,
+      "name": "InvalidCommitmentOpening",
+      "msg": "Pedersen commitment opening verification failed"
+    },
+    {
+      "code": 6017,
+      "name": "AttackDuringLandRush",
+      "msg": "Attacking is not permitted during Land Rush"
+    },
+    {
+      "code": 6018,
+      "name": "HexUnderAttack",
+      "msg": "Hex already has a pending attack"
+    },
+    {
+      "code": 6019,
+      "name": "OccupationShieldActive",
+      "msg": "Hex is within occupation shield window"
+    },
+    {
+      "code": 6020,
+      "name": "CombatCooldownActive",
+      "msg": "Hex is within combat cooldown window"
+    },
+    {
+      "code": 6021,
+      "name": "SelfAttack",
+      "msg": "Cannot attack your own hex"
+    },
+    {
+      "code": 6022,
+      "name": "BelowMinAttackEnergy",
+      "msg": "Energy committed is below minimum attack energy"
+    },
+    {
+      "code": 6023,
+      "name": "AttackAlreadyResolved",
+      "msg": "Attack has already been resolved"
+    },
+    {
+      "code": 6024,
+      "name": "DeadlineNotPassed",
+      "msg": "Deadline has not passed yet"
+    },
+    {
+      "code": 6025,
+      "name": "DeadlinePassed",
+      "msg": "Deadline has passed"
+    },
+    {
+      "code": 6026,
+      "name": "NotDefender",
+      "msg": "Caller is not the defender"
+    },
+    {
+      "code": 6027,
+      "name": "SeasonNotEnded",
+      "msg": "Season has not ended yet"
+    },
+    {
+      "code": 6028,
+      "name": "FinalizationComplete",
+      "msg": "Finalization is already complete"
+    },
+    {
+      "code": 6029,
+      "name": "FinalizationIncomplete",
+      "msg": "Finalization is not yet complete"
+    },
+    {
+      "code": 6030,
+      "name": "PlayerNotFinalized",
+      "msg": "Player has not been finalized"
+    },
+    {
+      "code": 6031,
+      "name": "InvalidRecipient",
+      "msg": "Recipient wallet does not match stored owner"
+    },
+    {
+      "code": 6032,
+      "name": "VictoryNotReached",
+      "msg": "Player's points are below the victory threshold"
+    },
+    {
+      "code": 6033,
+      "name": "InvalidShieldHour",
+      "msg": "Shield hour must be 0–23"
+    },
+    {
+      "code": 6034,
+      "name": "NftNotOwned",
+      "msg": "Wallet does not hold the specified NFT"
+    },
+    {
+      "code": 6035,
+      "name": "MapAlreadyFinalized",
+      "msg": "Map data has already been finalized"
+    },
+    {
+      "code": 6036,
+      "name": "RecoveryTooEarly",
+      "msg": "Recovery cannot be claimed within 24 hours of timeout"
+    },
+    {
+      "code": 6037,
+      "name": "RecoveryAlreadyClaimed",
+      "msg": "Recovery has already been claimed for this hex"
+    },
+    {
+      "code": 6038,
+      "name": "MissingInitialCommitment",
+      "msg": "No initial commitment provided"
+    },
+    {
+      "code": 6039,
+      "name": "InitialNonceMismatch",
+      "msg": "Initial nonce does not match player.commitment_nonce"
+    },
+    {
+      "code": 6040,
+      "name": "InvalidRegionId",
+      "msg": "Invalid region ID"
+    },
+    {
+      "code": 6041,
+      "name": "SeasonNotInCombatPhase",
+      "msg": "Season is not in a combat phase"
+    },
+    {
+      "code": 6042,
+      "name": "RetaliationTargetMismatch",
+      "msg": "Retaliation token target does not match hex owner"
+    },
+    {
+      "code": 6043,
+      "name": "InvalidPostureType",
+      "msg": "Invalid posture type"
+    },
+    {
+      "code": 6044,
+      "name": "PostureRequiresTarget",
+      "msg": "Posture requires a target"
+    },
+    {
+      "code": 6045,
+      "name": "StandingDownRequiresPlayer",
+      "msg": "Standing Down requires a target player"
+    },
+    {
+      "code": 6046,
+      "name": "TheatreWindowTooLong",
+      "msg": "Theatre window exceeds 49-hour maximum"
+    },
+    {
+      "code": 6047,
+      "name": "TheatreWindowTooShort",
+      "msg": "Theatre window is not in the future"
+    },
+    {
+      "code": 6048,
+      "name": "NotAuthorisedToReveal",
+      "msg": "Caller is not authorised to reveal"
+    },
+    {
+      "code": 6049,
+      "name": "CurveOpFailed",
+      "msg": "Curve operation failed"
+    },
+    {
+      "code": 6050,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6051,
+      "name": "Unauthorized",
+      "msg": "Unauthorized"
+    }
+  ],
+  "types": [
+    {
+      "name": "AdjacencySet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "chunk_index",
+            "type": "u8"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "edge_count",
+            "type": "u32"
+          },
+          {
+            "name": "edges",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "Edge"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "Attack",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "attacker",
+            "type": "pubkey"
+          },
+          {
+            "name": "target_hex",
+            "type": "u64"
+          },
+          {
+            "name": "origin_hex",
+            "type": "u64"
+          },
+          {
+            "name": "energy_committed",
+            "type": "u32"
+          },
+          {
+            "name": "defender",
+            "type": "pubkey"
+          },
+          {
+            "name": "launched_at",
+            "type": "i64"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          },
+          {
+            "name": "resolved",
+            "type": "bool"
+          },
+          {
+            "name": "result",
+            "type": {
+              "defined": {
+                "name": "AttackResult"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttackLaunched",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "attacker",
+            "type": "pubkey"
+          },
+          {
+            "name": "defender",
+            "type": "pubkey"
+          },
+          {
+            "name": "target_hex",
+            "type": "u64"
+          },
+          {
+            "name": "energy",
+            "type": "u32"
+          },
+          {
+            "name": "deadline",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttackRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "refund_amount",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttackResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "attacker",
+            "type": "pubkey"
+          },
+          {
+            "name": "defender",
+            "type": "pubkey"
+          },
+          {
+            "name": "attacker_committed",
+            "type": "u32"
+          },
+          {
+            "name": "defender_revealed",
+            "type": "u32"
+          },
+          {
+            "name": "outcome",
+            "type": "u8"
+          },
+          {
+            "name": "attacker_surplus_returned",
+            "type": "u32"
+          },
+          {
+            "name": "attacker_refund",
+            "type": "u32"
+          },
+          {
+            "name": "cooldown_end",
+            "type": "i64"
+          },
+          {
+            "name": "guardian_reveal",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "AttackResult",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Pending"
+          },
+          {
+            "name": "AttackerWon"
+          },
+          {
+            "name": "DefenderWon"
+          },
+          {
+            "name": "DefaultWin"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ClutchDefence",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "bonus_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CommitmentEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "nonce",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateSeasonParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "land_rush_end",
+            "type": "i64"
+          },
+          {
+            "name": "war_start",
+            "type": "i64"
+          },
+          {
+            "name": "escalation_start",
+            "type": "i64"
+          },
+          {
+            "name": "season_end",
+            "type": "i64"
+          },
+          {
+            "name": "join_cutoff",
+            "type": "i64"
+          },
+          {
+            "name": "h3_resolution",
+            "type": "u8"
+          },
+          {
+            "name": "energy_per_hex_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "energy_per_landmark_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "energy_cap",
+            "type": "u32"
+          },
+          {
+            "name": "starting_energy",
+            "type": "u32"
+          },
+          {
+            "name": "claim_cost",
+            "type": "u32"
+          },
+          {
+            "name": "min_attack_energy",
+            "type": "u32"
+          },
+          {
+            "name": "base_attack_window",
+            "type": "i64"
+          },
+          {
+            "name": "extended_attack_window",
+            "type": "i64"
+          },
+          {
+            "name": "occupation_shield_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "defender_win_cooldown_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "capture_cooldown_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_respawns_per_season",
+            "type": "u8"
+          },
+          {
+            "name": "points_per_hex_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "points_per_landmark_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "victory_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "escalation_energy_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_attack_cost_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_start",
+            "type": "i64"
+          },
+          {
+            "name": "escalation_stage_2_energy_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_attack_cost_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_landmark_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "theatre_capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "theatre_defence_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "attack_refund_bps",
+            "type": "u16"
+          },
+          {
+            "name": "attack_refund_min_threshold_multiplier",
+            "type": "u8"
+          },
+          {
+            "name": "retaliation_discount_bps",
+            "type": "u16"
+          },
+          {
+            "name": "phantom_recovery_energy",
+            "type": "u32"
+          },
+          {
+            "name": "retaliation_window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "clutch_defence_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "clutch_window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "landmarks",
+            "type": {
+              "vec": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "DefenceIncreased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "delta",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DefenceRecommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DefenceWithdrawn",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "energy_amount",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DefencesCommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "total_energy_delta",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Edge",
+      "docs": [
+        "Stored as (hex_a, hex_b) where hex_a < hex_b."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hex_a",
+            "type": "u64"
+          },
+          {
+            "name": "hex_b",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "FinalizationProgress",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "players_processed",
+            "type": "u32"
+          },
+          {
+            "name": "current_leader",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GlobalConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "docs": [
+              "Authority for creating seasons and updating config."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "season_counter",
+            "docs": [
+              "Incrementing counter for unique season IDs."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "paused",
+            "docs": [
+              "Emergency pause flag."
+            ],
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GuardianCleared",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GuardianRevealSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "guardian_pubkey",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "GuardianSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "guardian_pubkey",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Hex",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_landmark",
+            "type": "bool"
+          },
+          {
+            "name": "defence_commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "has_commitment",
+            "type": "bool"
+          },
+          {
+            "name": "defence_nonce",
+            "type": "u64"
+          },
+          {
+            "name": "claimed_at",
+            "type": "i64"
+          },
+          {
+            "name": "last_owner_change",
+            "type": "i64"
+          },
+          {
+            "name": "last_combat_resolved",
+            "type": "i64"
+          },
+          {
+            "name": "under_attack",
+            "type": "bool"
+          },
+          {
+            "name": "commitment_locked",
+            "type": "bool"
+          },
+          {
+            "name": "region_id",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HexAccountClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "rent_returned_to",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HexClaimed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_landmark",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MapFinalized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "edge_count",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhantomEnergyRecovered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "energy_recovered",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhantomRecovery",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "recovery_amount",
+            "type": "u32"
+          },
+          {
+            "name": "lost_at",
+            "type": "i64"
+          },
+          {
+            "name": "recovered",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PhaseChanged",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "new_phase",
+            "type": "u8"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Player",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "energy_balance",
+            "type": "u32"
+          },
+          {
+            "name": "energy_committed",
+            "type": "u32"
+          },
+          {
+            "name": "last_energy_update",
+            "type": "i64"
+          },
+          {
+            "name": "hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "landmark_count",
+            "type": "u8"
+          },
+          {
+            "name": "points",
+            "type": "u64"
+          },
+          {
+            "name": "last_points_update",
+            "type": "i64"
+          },
+          {
+            "name": "banner_nft",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_banner_nft",
+            "type": "bool"
+          },
+          {
+            "name": "joined_at",
+            "type": "i64"
+          },
+          {
+            "name": "commitment_nonce",
+            "type": "u64"
+          },
+          {
+            "name": "shield_start_hour",
+            "type": "u8"
+          },
+          {
+            "name": "shield_change_at",
+            "type": "i64"
+          },
+          {
+            "name": "has_shield_change",
+            "type": "bool"
+          },
+          {
+            "name": "pending_shield_hour",
+            "type": "u8"
+          },
+          {
+            "name": "attacks_launched",
+            "type": "u32"
+          },
+          {
+            "name": "attacks_won",
+            "type": "u32"
+          },
+          {
+            "name": "defences_made",
+            "type": "u32"
+          },
+          {
+            "name": "defences_won",
+            "type": "u32"
+          },
+          {
+            "name": "clutch_defences",
+            "type": "u32"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "phantom_energy",
+            "type": "u32"
+          },
+          {
+            "name": "respawn_count",
+            "type": "u8"
+          },
+          {
+            "name": "retaliation_target",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_retaliation_target",
+            "type": "bool"
+          },
+          {
+            "name": "retaliation_expires",
+            "type": "i64"
+          },
+          {
+            "name": "has_retaliation_expires",
+            "type": "bool"
+          },
+          {
+            "name": "retaliation_discount_bps",
+            "type": "u16"
+          },
+          {
+            "name": "posture_type",
+            "type": "u8"
+          },
+          {
+            "name": "posture_target",
+            "type": "u64"
+          },
+          {
+            "name": "posture_target_player",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_posture_target_player",
+            "type": "bool"
+          },
+          {
+            "name": "posture_expires",
+            "type": "i64"
+          },
+          {
+            "name": "has_posture_expires",
+            "type": "bool"
+          },
+          {
+            "name": "guardian",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_guardian",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerAccountClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_returned_to",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PlayerJoined",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "joined_at",
+            "type": "i64"
+          },
+          {
+            "name": "starting_energy",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PostureSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "posture_type",
+            "type": "u8"
+          },
+          {
+            "name": "target",
+            "type": "u64"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Reputation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "seasons_played",
+            "type": "u32"
+          },
+          {
+            "name": "seasons_won",
+            "type": "u32"
+          },
+          {
+            "name": "total_hexes_captured",
+            "type": "u64"
+          },
+          {
+            "name": "total_attacks_launched",
+            "type": "u64"
+          },
+          {
+            "name": "total_attacks_won",
+            "type": "u64"
+          },
+          {
+            "name": "total_defences_made",
+            "type": "u64"
+          },
+          {
+            "name": "total_defences_won",
+            "type": "u64"
+          },
+          {
+            "name": "best_season_rank",
+            "type": "u32"
+          },
+          {
+            "name": "best_season_score",
+            "type": "u64"
+          },
+          {
+            "name": "total_clutch_defences",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RetaliationTokenGranted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "target",
+            "type": "pubkey"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "discount_bps",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RetaliationTokenUsed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "target",
+            "type": "pubkey"
+          },
+          {
+            "name": "attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "discount_applied",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Season",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "land_rush_end",
+            "type": "i64"
+          },
+          {
+            "name": "war_start",
+            "type": "i64"
+          },
+          {
+            "name": "escalation_start",
+            "type": "i64"
+          },
+          {
+            "name": "season_end",
+            "type": "i64"
+          },
+          {
+            "name": "join_cutoff",
+            "type": "i64"
+          },
+          {
+            "name": "actual_end",
+            "type": "i64"
+          },
+          {
+            "name": "has_actual_end",
+            "type": "bool"
+          },
+          {
+            "name": "h3_resolution",
+            "type": "u8"
+          },
+          {
+            "name": "map_finalized",
+            "type": "bool"
+          },
+          {
+            "name": "energy_per_hex_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "energy_per_landmark_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "energy_cap",
+            "type": "u32"
+          },
+          {
+            "name": "starting_energy",
+            "type": "u32"
+          },
+          {
+            "name": "claim_cost",
+            "type": "u32"
+          },
+          {
+            "name": "min_attack_energy",
+            "type": "u32"
+          },
+          {
+            "name": "base_attack_window",
+            "type": "i64"
+          },
+          {
+            "name": "extended_attack_window",
+            "type": "i64"
+          },
+          {
+            "name": "occupation_shield_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "defender_win_cooldown_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "capture_cooldown_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "max_respawns_per_season",
+            "type": "u8"
+          },
+          {
+            "name": "points_per_hex_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "points_per_landmark_per_hour",
+            "type": "u16"
+          },
+          {
+            "name": "victory_threshold",
+            "type": "u64"
+          },
+          {
+            "name": "escalation_energy_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_attack_cost_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_start",
+            "type": "i64"
+          },
+          {
+            "name": "escalation_stage_2_energy_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_attack_cost_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "escalation_stage_2_landmark_multiplier_bps",
+            "type": "u16"
+          },
+          {
+            "name": "active_theatres",
+            "type": {
+              "array": [
+                "u8",
+                3
+              ]
+            }
+          },
+          {
+            "name": "theatre_activated_at",
+            "type": "i64"
+          },
+          {
+            "name": "theatre_expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "theatre_window_index",
+            "type": "u32"
+          },
+          {
+            "name": "theatre_commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "theatre_capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "theatre_defence_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "attack_refund_bps",
+            "type": "u16"
+          },
+          {
+            "name": "attack_refund_min_threshold_multiplier",
+            "type": "u8"
+          },
+          {
+            "name": "retaliation_discount_bps",
+            "type": "u16"
+          },
+          {
+            "name": "phantom_recovery_energy",
+            "type": "u32"
+          },
+          {
+            "name": "retaliation_window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "clutch_defence_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "clutch_window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_winner",
+            "type": "bool"
+          },
+          {
+            "name": "winning_score",
+            "type": "u64"
+          },
+          {
+            "name": "finalization_leader",
+            "type": "pubkey"
+          },
+          {
+            "name": "has_finalization_leader",
+            "type": "bool"
+          },
+          {
+            "name": "finalization_leader_score",
+            "type": "u64"
+          },
+          {
+            "name": "finalization_complete",
+            "type": "bool"
+          },
+          {
+            "name": "cleanup_complete",
+            "type": "bool"
+          },
+          {
+            "name": "landmark_count",
+            "type": "u8"
+          },
+          {
+            "name": "landmarks",
+            "type": {
+              "vec": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeasonCounters",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player_count",
+            "type": "u32"
+          },
+          {
+            "name": "total_hexes_claimed",
+            "type": "u32"
+          },
+          {
+            "name": "next_attack_id",
+            "type": "u64"
+          },
+          {
+            "name": "finalized_count",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeasonCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "start_time",
+            "type": "i64"
+          },
+          {
+            "name": "end_time",
+            "type": "i64"
+          },
+          {
+            "name": "landmark_count",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeasonEnded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "end_reason",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SeasonFinalized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "winning_score",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TheatreActivated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "theatre_regions",
+            "type": {
+              "array": [
+                "u8",
+                3
+              ]
+            }
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "defence_bonus_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TheatreBonusAwarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "bonus_type",
+            "type": "u8"
+          },
+          {
+            "name": "points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ValidHexSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "chunk_index",
+            "type": "u8"
+          },
+          {
+            "name": "finalized",
+            "type": "bool"
+          },
+          {
+            "name": "hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "hex_ids",
+            "type": {
+              "vec": "u64"
+            }
+          },
+          {
+            "name": "region_ids",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "VictoryThresholdReached",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "score",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ]
+}

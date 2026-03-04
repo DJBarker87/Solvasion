@@ -1,0 +1,27 @@
+{
+  "name": "solvasion-backend",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.ts",
+    "rebuild": "node dist/main.js --rebuild"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "0.32.1",
+    "@fastify/rate-limit": "^10.2.0",
+    "@fastify/websocket": "^11.0.1",
+    "@noble/curves": "^2.0.0",
+    "@noble/hashes": "^1.7.0",
+    "@solana/web3.js": "^1.98.0",
+    "better-sqlite3": "^11.7.0",
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.12.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}

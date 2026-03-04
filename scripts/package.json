@@ -1,0 +1,21 @@
+{
+  "name": "solvasion-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate-map": "tsx generate-map.ts"
+  },
+  "dependencies": {
+    "@turf/boolean-point-in-polygon": "^7.2.0",
+    "@turf/helpers": "^7.2.0",
+    "@noble/curves": "^2.0.0",
+    "@noble/hashes": "^1.7.0",
+    "h3-js": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
