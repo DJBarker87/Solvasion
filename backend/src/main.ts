@@ -12,6 +12,7 @@ async function main() {
   const rebuild = args.includes("--rebuild");
 
   logger.info("Solvasion backend starting...");
+  logger.info(`CRANK_KEYPAIR_PATH env: ${process.env.CRANK_KEYPAIR_PATH ? `set (${process.env.CRANK_KEYPAIR_PATH.length} chars)` : "NOT SET"}`);
 
   // Initialize database
   initDb(rebuild);
