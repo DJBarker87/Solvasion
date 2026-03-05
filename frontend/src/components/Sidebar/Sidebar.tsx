@@ -81,6 +81,9 @@ export default function Sidebar({
                 <li>&#x2713; Rent deposits are fully refunded at season end</li>
                 <li>&#x2713; Open source — <a href="https://github.com/DJBarker87/Solvasion" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">view the code</a></li>
               </ul>
+              <p className="text-yellow-500/80 border-t border-gray-800 pt-2">
+                We recommend using a fresh wallet for extra security. Just load it with a small amount of SOL for transaction fees and an NFT you want as your banner.
+              </p>
             </div>
           )}
           {playerData && (
