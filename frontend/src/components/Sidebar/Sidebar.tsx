@@ -66,6 +66,23 @@ export default function Sidebar({
           </div>
           <p className="text-gray-500 text-xs mb-2">Territory Conquest on Solana</p>
           <WalletButton />
+          {!playerData && !children && (
+            <div className="mt-3 bg-gray-900/60 border border-gray-800 rounded-lg p-3 text-xs text-gray-400 space-y-2">
+              <p className="text-gray-200 font-medium text-sm">Conquer Europe, hex by hex.</p>
+              <p>
+                Solvasion is a fully on-chain territory game on Solana. Claim hexes, hide your garrison strength with cryptographic commitments, and battle for control of the map.
+              </p>
+              <p className="text-gray-500">
+                Connecting your wallet lets you view your territory and join a season. All game actions are Solana transactions — your wallet signs each one. We never have access to your funds.
+              </p>
+              <ul className="text-gray-500 space-y-1">
+                <li>&#x2713; Free to play — no token, no entry fee</li>
+                <li>&#x2713; You only pay tiny Solana tx fees (~0.00001 SOL)</li>
+                <li>&#x2713; Rent deposits are fully refunded at season end</li>
+                <li>&#x2713; Open source — <a href="https://github.com/DJBarker87/Solvasion" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">view the code</a></li>
+              </ul>
+            </div>
+          )}
           {playerData && (
             <div className="mt-2 flex gap-3 text-xs text-gray-400">
               <span>Energy: <span className="text-yellow-300">{playerData.energy_balance}</span></span>
