@@ -34,6 +34,10 @@ export function initDb(rebuild = false): Database.Database {
   const schema = fs.readFileSync(schemaPath, "utf-8");
   db.exec(schema);
 
+  // Ensure indexes exist for existing DBs
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_attacks_expiry ON attacks(resolved, deadline)`);
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_events_slot ON events(season_id, slot)`);
+
   logger.info(`Database initialized at ${config.dbPath}`);
   return db;
 }
@@ -300,6 +304,60 @@ export function preparedStatements(db: Database.Database) {
     `),
     deleteBotHexSecret: db.prepare(`
       DELETE FROM bot_hex_secrets WHERE season_id = ? AND bot_name = ? AND hex_id = ?
+    `),
+
+    // Contracts
+    insertContract: db.prepare(`
+      INSERT INTO contracts (season_id, contract_type, target_region, target_count, bonus_points, generated_at, expires_at)
+      VALUES (@season_id, @contract_type, @target_region, @target_count, @bonus_points, @generated_at, @expires_at)
+    `),
+    getActiveContracts: db.prepare(`
+      SELECT * FROM contracts WHERE season_id = ? AND expires_at > ? ORDER BY contract_id DESC LIMIT 3
+    `),
+    upsertContractProgress: db.prepare(`
+      INSERT INTO contract_progress (contract_id, wallet, current_count, completed, completed_at)
+      VALUES (@contract_id, @wallet, @current_count, @completed, @completed_at)
+      ON CONFLICT(contract_id, wallet) DO UPDATE SET
+        current_count = @current_count, completed = @completed, completed_at = @completed_at
+    `),
+    getContractProgress: db.prepare(`
+      SELECT cp.*, c.contract_type, c.target_region, c.target_count, c.bonus_points, c.expires_at
+      FROM contracts c LEFT JOIN contract_progress cp ON c.contract_id = cp.contract_id AND cp.wallet = ?
+      WHERE c.season_id = ? AND c.expires_at > ?
+      ORDER BY c.contract_id DESC LIMIT 3
+    `),
+
+    // Pacts
+    insertPact: db.prepare(`
+      INSERT INTO pacts (season_id, player_a, player_b, expires_at, accepted, broken, broken_by, created_at)
+      VALUES (@season_id, @player_a, @player_b, @expires_at, @accepted, @broken, @broken_by, CAST(strftime('%s','now') AS INTEGER))
+    `),
+    getPact: db.prepare(`
+      SELECT * FROM pacts WHERE season_id = ? AND player_a = ? AND player_b = ?
+    `),
+    updatePactAccepted: db.prepare(`
+      UPDATE pacts SET accepted = 1
+      WHERE season_id = @season_id AND player_a = @player_a AND player_b = @player_b
+    `),
+    updatePactBroken: db.prepare(`
+      UPDATE pacts SET broken = 1, broken_by = @broken_by
+      WHERE season_id = @season_id AND player_a = @player_a AND player_b = @player_b
+    `),
+    getPlayerPacts: db.prepare(`
+      SELECT * FROM pacts WHERE season_id = ? AND (player_a = ? OR player_b = ?) AND broken = 0 AND expires_at > ?
+    `),
+
+    // Telegram subscriptions
+    upsertTelegramSub: db.prepare(`
+      INSERT INTO telegram_subscriptions (wallet, chat_id, enabled, created_at)
+      VALUES (@wallet, @chat_id, @enabled, @created_at)
+      ON CONFLICT(wallet) DO UPDATE SET chat_id = @chat_id, enabled = @enabled
+    `),
+    getTelegramSub: db.prepare(`
+      SELECT * FROM telegram_subscriptions WHERE wallet = ? AND enabled = 1
+    `),
+    disableTelegramSub: db.prepare(`
+      UPDATE telegram_subscriptions SET enabled = 0 WHERE wallet = ?
     `),
   };
 }

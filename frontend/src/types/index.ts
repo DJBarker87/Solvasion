@@ -146,4 +146,6 @@ export interface HexFeatureProps {
   isLandmark: boolean;
   hasCommitment: boolean;
   underAttack: boolean;
+  underAttackDash: boolean;
+  opacity: number;
 }

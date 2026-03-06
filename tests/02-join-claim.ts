@@ -202,6 +202,43 @@ describe("02 — Join + Claim", () => {
     }
   });
 
+  it("join_season — late joiner gets bonus energy", async () => {
+    // Create a separate war-phase season
+    const result = await createTestSeason(program, provider.wallet, { warPhase: true });
+    const warSeasonId = result.seasonId;
+    const [warSeasonPda] = findSeason(programId, warSeasonId);
+    const [warCountersPda] = findSeasonCounters(programId, warSeasonId);
+
+    // Use a new keypair for a fresh player
+    const latePlayer = anchor.web3.Keypair.generate();
+    const transferIx = anchor.web3.SystemProgram.transfer({
+      fromPubkey: admin,
+      toPubkey: latePlayer.publicKey,
+      lamports: 500_000_000,
+    });
+    const transferTx = new anchor.web3.Transaction().add(transferIx);
+    await provider.sendAndConfirm(transferTx);
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const [latePlayerPda] = findPlayer(programId, warSeasonId, latePlayer.publicKey);
+    await program.methods
+      .joinSeason()
+      .accounts({
+        playerWallet: latePlayer.publicKey,
+        season: warSeasonPda,
+        seasonCounters: warCountersPda,
+        player: latePlayerPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([latePlayer])
+      .rpc({ commitment: "confirmed", skipPreflight: true });
+    await new Promise((r) => setTimeout(r, 2000));
+
+    const player = await program.account.player.fetch(latePlayerPda);
+    // starting_energy (100) + late_join_bonus_energy (250) = 350
+    expect(player.energyBalance).to.equal(350);
+  });
+
   it("claim_hex — already owned rejected (HexAlreadyOwned)", async () => {
     const [seasonPda] = findSeason(programId, seasonId);
     const [countersPda] = findSeasonCounters(programId, seasonId);

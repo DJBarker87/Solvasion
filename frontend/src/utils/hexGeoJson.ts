@@ -2,6 +2,7 @@ import { cellToBoundary } from 'h3-js';
 import type { Feature, FeatureCollection, Polygon } from 'geojson';
 import type { EnrichedHex, HexFeatureProps } from '../types';
 import { walletFillColor, COLORS } from './hexColors';
+import { getAdjacent } from './adjacency';
 
 function hexToPolygon(h3Index: string): number[][] {
   // cellToBoundary returns [lat, lng][], Mapbox needs [lng, lat][]
@@ -12,7 +13,48 @@ function hexToPolygon(h3Index: string): number[][] {
   return coords;
 }
 
-function featureProps(hex: EnrichedHex): HexFeatureProps {
+/**
+ * BFS from player's hexes to compute hop distance for fog-of-war.
+ * Returns a Map from hexId → hop distance (0 = player's own hex).
+ */
+function computeHopDistances(hexes: EnrichedHex[], playerWallet: string): Map<string, number> {
+  const distances = new Map<string, number>();
+  const queue: string[] = [];
+
+  for (const hex of hexes) {
+    if (hex.owner === playerWallet) {
+      distances.set(hex.hexId, 0);
+      queue.push(hex.hexId);
+    }
+  }
+
+  let head = 0;
+  while (head < queue.length) {
+    const current = queue[head++];
+    const dist = distances.get(current)!;
+    if (dist >= 2) continue; // only need up to 2 hops
+
+    const neighbors = getAdjacent(current);
+    for (const n of neighbors) {
+      if (!distances.has(n)) {
+        distances.set(n, dist + 1);
+        queue.push(n);
+      }
+    }
+  }
+
+  return distances;
+}
+
+const OPACITY_BY_HOP: Record<number, number> = {
+  0: 0.8,   // player's own hexes
+  1: 0.6,   // adjacent
+  2: 0.4,   // 2 hops
+};
+const OPACITY_FAR = 0.2;       // 3+ hops
+const OPACITY_UNCLAIMED = 0.15;
+
+function featureProps(hex: EnrichedHex, opacity: number): HexFeatureProps {
   const owned = hex.owner !== null;
 
   let fillColor: string = COLORS.unownedFill;
@@ -46,18 +88,45 @@ function featureProps(hex: EnrichedHex): HexFeatureProps {
     isLandmark: hex.isLandmark,
     hasCommitment: hex.hasCommitment,
     underAttack: hex.underAttack,
+    underAttackDash: hex.underAttack,
+    opacity,
   };
 }
 
-export function buildHexGeoJson(hexes: EnrichedHex[]): FeatureCollection<Polygon, HexFeatureProps> {
-  const features: Feature<Polygon, HexFeatureProps>[] = hexes.map((hex) => ({
-    type: 'Feature',
-    properties: featureProps(hex),
-    geometry: {
-      type: 'Polygon',
-      coordinates: [hexToPolygon(hex.h3Index)],
-    },
-  }));
+export interface FogOptions {
+  enabled: boolean;
+  playerWallet: string | null;
+}
+
+export function buildHexGeoJson(
+  hexes: EnrichedHex[],
+  fog?: FogOptions,
+): FeatureCollection<Polygon, HexFeatureProps> {
+  let hopDistances: Map<string, number> | null = null;
+  if (fog?.enabled && fog.playerWallet) {
+    hopDistances = computeHopDistances(hexes, fog.playerWallet);
+  }
+
+  const features: Feature<Polygon, HexFeatureProps>[] = hexes.map((hex) => {
+    let opacity = 1;
+    if (hopDistances) {
+      if (hex.owner === null) {
+        opacity = OPACITY_UNCLAIMED;
+      } else {
+        const dist = hopDistances.get(hex.hexId);
+        opacity = dist !== undefined ? (OPACITY_BY_HOP[dist] ?? OPACITY_FAR) : OPACITY_FAR;
+      }
+    }
+
+    return {
+      type: 'Feature' as const,
+      properties: featureProps(hex, opacity),
+      geometry: {
+        type: 'Polygon' as const,
+        coordinates: [hexToPolygon(hex.h3Index)],
+      },
+    };
+  });
 
   return { type: 'FeatureCollection', features };
 }

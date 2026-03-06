@@ -6,6 +6,27 @@ import { encryptPacket } from "../../guardian/crypto.js";
 import { isGuardianEnabled } from "../../guardian/index.js";
 import { config } from "../../config.js";
 import { logger } from "../../utils/logger.js";
+import { validateWallet } from "../../utils/validate.js";
+
+// ---- Per-wallet rate limiter (10 uploads/min) ----
+const RATE_LIMIT_WINDOW = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 10;
+const uploadTimestamps = new Map<string, number[]>();
+
+function checkUploadRateLimit(wallet: string): boolean {
+  const now = Date.now();
+  let timestamps = uploadTimestamps.get(wallet);
+  if (!timestamps) {
+    timestamps = [];
+    uploadTimestamps.set(wallet, timestamps);
+  }
+  // Prune old entries
+  const cutoff = now - RATE_LIMIT_WINDOW;
+  while (timestamps.length > 0 && timestamps[0] < cutoff) timestamps.shift();
+  if (timestamps.length >= RATE_LIMIT_MAX) return false;
+  timestamps.push(now);
+  return true;
+}
 
 /**
  * Verify an Ed25519 signature using Node.js crypto.
@@ -47,6 +68,11 @@ export function registerGuardianRoutes(app: FastifyInstance) {
 
     const { season_id, player_wallet, hex_id, energy_amount, blind_hex, nonce, signature } = req.body;
 
+    // Validate wallet address
+    if (player_wallet && !validateWallet(player_wallet)) {
+      return reply.status(400).send({ error: "Invalid wallet address" });
+    }
+
     // Validate inputs
     if (!season_id || !player_wallet || !hex_id || energy_amount == null || !blind_hex || nonce == null || !signature) {
       return reply.status(400).send({ error: "Missing required fields" });
@@ -57,10 +83,20 @@ export function registerGuardianRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "blind_hex must be 64 hex chars" });
     }
 
+    // Signature length validation (Ed25519 = 64 bytes)
+    const signatureBytes = Buffer.from(signature, "base64");
+    if (signatureBytes.length !== 64) {
+      return reply.status(400).send({ error: "Signature must be exactly 64 bytes" });
+    }
+
+    // Per-wallet rate limiting
+    if (!checkUploadRateLimit(player_wallet)) {
+      return reply.status(429).send({ error: "Too many uploads. Max 10 per minute." });
+    }
+
     // Verify signature: player signed "guardian:{season_id}:{hex_id}:{nonce}"
     const message = `guardian:${season_id}:${hex_id}:${nonce}`;
     const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = Buffer.from(signature, "base64");
     const pubkeyBytes = new PublicKey(player_wallet).toBytes();
 
     if (!verifyEd25519(messageBytes, signatureBytes, pubkeyBytes)) {
@@ -96,30 +132,38 @@ export function registerGuardianRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  // Delete a reveal packet
-  app.delete<{
+  // Delete a reveal packet (POST with body instead of DELETE with query params)
+  app.post<{
     Params: { seasonId: string; hexId: string };
-    Querystring: { wallet: string; signature: string };
-  }>("/api/guardian/packets/:seasonId/:hexId", async (req, reply) => {
+    Body: { wallet: string; signature: string };
+  }>("/api/guardian/packets/:seasonId/:hexId/delete", async (req, reply) => {
     if (!isGuardianEnabled()) {
       return reply.status(503).send({ error: "Guardian service not enabled" });
     }
 
     const seasonId = parseInt(req.params.seasonId, 10);
     const hexId = req.params.hexId;
-    const { wallet, signature } = req.query;
+    const { wallet, signature } = req.body;
 
     if (!wallet || !signature) {
-      return reply.status(400).send({ error: "Missing wallet or signature query params" });
+      return reply.status(400).send({ error: "Missing wallet or signature" });
+    }
+    if (!validateWallet(wallet)) {
+      return reply.status(400).send({ error: "Invalid wallet address" });
+    }
+
+    // Signature length validation
+    const sigBytes = Buffer.from(signature, "base64");
+    if (sigBytes.length !== 64) {
+      return reply.status(400).send({ error: "Signature must be exactly 64 bytes" });
     }
 
     // Verify signature: player signed "guardian:delete:{seasonId}:{hexId}"
     const message = `guardian:delete:${seasonId}:${hexId}`;
     const messageBytes = new TextEncoder().encode(message);
-    const signatureBytes = Buffer.from(signature, "base64");
     const pubkeyBytes = new PublicKey(wallet).toBytes();
 
-    if (!verifyEd25519(messageBytes, signatureBytes, pubkeyBytes)) {
+    if (!verifyEd25519(messageBytes, sigBytes, pubkeyBytes)) {
       return reply.status(403).send({ error: "Invalid signature" });
     }
 

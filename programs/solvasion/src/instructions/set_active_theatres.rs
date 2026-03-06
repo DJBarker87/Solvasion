@@ -38,6 +38,9 @@ pub fn handler(
         SolvasionError::SeasonNotInCombatPhase,
     );
 
+    // Must be past theatre earliest start time
+    require!(now >= season.theatre_earliest_start, SolvasionError::TheatreTooEarly);
+
     // Validate region IDs (1–15, non-zero)
     for &region in theatre_regions.iter() {
         require!(region >= 1 && region <= 15, SolvasionError::InvalidRegionId);

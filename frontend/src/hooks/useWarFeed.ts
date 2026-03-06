@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FeedItem } from '../types';
 import { fetchFeed } from '../api';
 
-const POLL_INTERVAL = 10_000; // 10s
+const POLL_INTERVAL = 30_000; // 30s (WS handles real-time updates)
 
 export function useWarFeed(seasonId: number | null) {
   const [items, setItems] = useState<FeedItem[]>([]);

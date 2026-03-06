@@ -1,15 +1,16 @@
+import React from 'react';
 import type { Player } from '../../types';
 
 interface LeaderboardProps {
   players: Player[];
 }
 
-export default function Leaderboard({ players }: LeaderboardProps) {
+export default React.memo(function Leaderboard({ players }: LeaderboardProps) {
   if (players.length === 0) {
     return (
       <div className="p-4 border-b border-gray-800">
         <h3 className="text-gray-400 text-xs font-semibold uppercase mb-2">Leaderboard</h3>
-        <p className="text-gray-600 text-xs">No players yet</p>
+        <p className="text-gray-600 text-xs">No players have joined yet</p>
       </div>
     );
   }
@@ -31,4 +32,4 @@ export default function Leaderboard({ players }: LeaderboardProps) {
       </div>
     </div>
   );
-}
+});

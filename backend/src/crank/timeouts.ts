@@ -29,9 +29,14 @@ export async function processTimeouts() {
       logger.info(`Resolved timeout: season=${attack.season_id} attack=${attack.attack_id}`);
     } catch (err: any) {
       const errMsg = String(err);
-      // Skip if already resolved on-chain
-      if (errMsg.includes("already in use") || errMsg.includes("custom program error")) {
-        logger.debug(`Attack ${attack.attack_id} already resolved on-chain`);
+      // Skip if already resolved on-chain — check for common Anchor/Solana error patterns
+      // "already in use" = account already initialized/closed
+      // "custom program error: 0x..." = Anchor error codes (e.g. AttackAlreadyResolved, InvalidPhase)
+      const alreadyResolved = errMsg.includes("already in use") ||
+        errMsg.includes("custom program error") ||
+        errMsg.includes("AccountNotInitialized");
+      if (alreadyResolved) {
+        logger.debug(`Attack ${attack.attack_id} already resolved on-chain (${errMsg.slice(0, 80)})`);
         // Mark as resolved in DB to avoid retrying
         stmts.updateAttackResolved.run({
           season_id: attack.season_id,
@@ -68,7 +73,7 @@ async function resolveTimeout(program: any, attack: any) {
   const [attackerPlayerPda] = findPlayer(programId, seasonId, attacker);
   const [defenderPlayerPda] = findPlayer(programId, seasonId, defender);
 
-  await program.methods
+  const rpcPromise = program.methods
     .resolveTimeout()
     .accounts({
       cranker: program.provider.wallet.publicKey,
@@ -82,4 +87,10 @@ async function resolveTimeout(program: any, attack: any) {
       systemProgram: SystemProgram.programId,
     })
     .rpc({ commitment: "confirmed", skipPreflight: true });
+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("RPC timeout after 10s")), 10_000)
+  );
+
+  await Promise.race([rpcPromise, timeoutPromise]);
 }

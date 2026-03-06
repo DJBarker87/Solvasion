@@ -61,13 +61,13 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     clearTx,
 
     joinSeason: useCallback(async (seasonId: number) => {
-      await wrap('Join Season', () =>
+      await wrap('Joining season...', () =>
         actions.joinSeason(program!, seasonId, publicKey!));
     }, [wrap, program, publicKey]),
 
     claimHex: useCallback(async (seasonId: number, hexId: string, adjacentHexId: string | null) => {
       const nonce = getNextNonce(seasonId);
-      await wrap('Claim Hex', async () => {
+      await wrap('Claiming hex...', async () => {
         const sig = await actions.claimHex(program!, seasonId, publicKey!, hexId, adjacentHexId, nonce);
         // Fire-and-forget Guardian upload
         if (guardian?.enabled) {
@@ -83,7 +83,7 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
 
     commitDefence: useCallback(async (seasonId: number, hexIds: string[], amounts: number[]) => {
       const nonce = getNextNonce(seasonId);
-      await wrap('Set Garrison', async () => {
+      await wrap('Setting garrison...', async () => {
         const sig = await actions.commitDefence(program!, seasonId, publicKey!, hexIds, amounts, nonce);
         if (guardian?.enabled) {
           for (let i = 0; i < hexIds.length; i++) {
@@ -100,7 +100,7 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
 
     increaseDefence: useCallback(async (seasonId: number, hexId: string, newTotal: number, delta: number) => {
       const nonce = getNextNonce(seasonId);
-      await wrap('Increase Garrison', async () => {
+      await wrap('Increasing garrison...', async () => {
         const sig = await actions.increaseDefence(program!, seasonId, publicKey!, hexId, newTotal, delta, nonce);
         if (guardian?.enabled) {
           const entry = ledger.getEntry(publicKey!.toBase58(), seasonId, hexId);
@@ -114,17 +114,17 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     }, [wrap, program, publicKey, getNextNonce, guardian]),
 
     withdrawDefence: useCallback(async (seasonId: number, hexId: string) => {
-      await wrap('Withdraw Garrison', () =>
+      await wrap('Withdrawing garrison...', () =>
         actions.withdrawDefence(program!, seasonId, publicKey!, hexId));
     }, [wrap, program, publicKey]),
 
     launchAttack: useCallback(async (seasonId: number, targetHexId: string, originHexId: string, energy: number, defenderWallet: string, nextAttackId: number) => {
-      await wrap('Launch Attack', () =>
+      await wrap('Launching attack...', () =>
         actions.launchAttack(program!, seasonId, publicKey!, targetHexId, originHexId, energy, new PublicKey(defenderWallet), nextAttackId));
     }, [wrap, program, publicKey]),
 
     revealDefence: useCallback(async (seasonId: number, attackId: number, hexId: string, attackerWallet: string) => {
-      await wrap('Reveal Garrison', () =>
+      await wrap('Revealing garrison...', () =>
         actions.revealDefence(program!, seasonId, publicKey!, attackId, hexId, new PublicKey(attackerWallet)));
     }, [wrap, program, publicKey]),
   };

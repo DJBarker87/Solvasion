@@ -147,12 +147,25 @@ pub fn recalculate_points(
         return Ok(());
     }
 
+    let phase = effective_phase(season, now);
+
     let hex_rate = (player.hex_count as u64)
         .checked_mul(season.points_per_hex_per_hour as u64)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
-    let landmark_rate = (player.landmark_count as u64)
+    let base_landmark_rate = (player.landmark_count as u64)
         .checked_mul(season.points_per_landmark_per_hour as u64)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+    // Apply Stage 2 landmark multiplier (basis points)
+    let landmark_rate = if phase == Phase::EscalationStage2 {
+        base_landmark_rate
+            .checked_mul(season.escalation_stage_2_landmark_multiplier_bps as u64)
+            .ok_or(SolvasionError::ArithmeticOverflow)?
+            / 10_000
+    } else {
+        base_landmark_rate
+    };
+
     let total_rate = hex_rate
         .checked_add(landmark_rate)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

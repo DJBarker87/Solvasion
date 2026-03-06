@@ -208,6 +208,10 @@ describe("04 — Combat (Attack + Resolve)", () => {
     expect(hex.hasCommitment).to.equal(false);
     expect(hex.underAttack).to.equal(false);
 
+    // Defender should have received defence_win_bonus_points (15)
+    const p2After = await program.account.player.fetch(player2Pda);
+    expect(Number(p2After.points)).to.be.greaterThanOrEqual(15);
+
     // Clear the saved blind (commitment consumed)
     hexBlinds.delete(200);
   });

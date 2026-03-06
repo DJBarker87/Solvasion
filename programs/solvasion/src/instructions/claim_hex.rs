@@ -173,6 +173,9 @@ pub fn handler(
     player.hex_count = player.hex_count
         .checked_add(1)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
+    if player.hex_count > player.peak_hex_count {
+        player.peak_hex_count = player.hex_count;
+    }
     if is_landmark {
         player.landmark_count = player.landmark_count
             .checked_add(1)

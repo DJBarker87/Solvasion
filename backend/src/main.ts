@@ -4,6 +4,8 @@ import { startCrank, stopCrank } from "./crank/index.js";
 import { startApi } from "./api/index.js";
 import { startGuardian } from "./guardian/index.js";
 import { startBots, stopBots } from "./bots/index.js";
+import { startTelegram, stopTelegram } from "./telegram/index.js";
+import { startContractService, stopContractService } from "./contracts.js";
 import { fullRebuild } from "./indexer/reconcile.js";
 import { logger } from "./utils/logger.js";
 
@@ -29,6 +31,15 @@ async function main() {
   // Optional services
   startGuardian();
   await startBots();
+  startTelegram();
+
+  // Start contract service for active season
+  const activeSeason = (await import("./db.js")).preparedStatements((await import("./db.js")).getDb())
+    .getAllSeasons.all() as any[];
+  const currentSeason = activeSeason.find((s: any) => s.phase !== "Ended");
+  if (currentSeason) {
+    startContractService(currentSeason.season_id);
+  }
 
   logger.info("All systems online");
 
@@ -38,6 +49,8 @@ async function main() {
     stopIndexer();
     stopCrank();
     stopBots();
+    stopTelegram();
+    stopContractService();
     process.exit(0);
   };
 

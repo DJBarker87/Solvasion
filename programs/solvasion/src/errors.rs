@@ -98,6 +98,8 @@ pub enum SolvasionError {
     TheatreWindowTooLong,
     #[msg("Theatre window is not in the future")]
     TheatreWindowTooShort,
+    #[msg("Theatre rotations cannot start before the earliest start time")]
+    TheatreTooEarly,
     #[msg("Caller is not authorised to reveal")]
     NotAuthorisedToReveal,
     #[msg("Curve operation failed")]
@@ -106,4 +108,8 @@ pub enum SolvasionError {
     ArithmeticOverflow,
     #[msg("Unauthorized")]
     Unauthorized,
+    #[msg("Pact has already been accepted")]
+    PactAlreadyAccepted,
+    #[msg("Pact has been broken")]
+    PactBroken,
 }

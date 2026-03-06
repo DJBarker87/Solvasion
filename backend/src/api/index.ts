@@ -11,6 +11,8 @@ import { registerReputationRoutes } from "./routes/reputation.js";
 import { registerFeedRoutes } from "./routes/feed.js";
 import { registerStatsRoutes } from "./routes/stats.js";
 import { registerGuardianRoutes } from "./routes/guardian.js";
+import { registerContractRoutes } from "./routes/contracts.js";
+import { registerReplayRoutes } from "./routes/replay.js";
 import { registerWebSocket } from "./ws.js";
 
 export async function startApi() {
@@ -23,11 +25,13 @@ export async function startApi() {
   });
 
   // WebSocket
-  await app.register(fastifyWebsocket);
+  await app.register(fastifyWebsocket, {
+    options: { maxPayload: 64 * 1024 }, // 64KB max message size
+  });
 
   // CORS — allow all for dev
   app.addHook("onRequest", (req, reply, done) => {
-    reply.header("Access-Control-Allow-Origin", "*");
+    reply.header("Access-Control-Allow-Origin", config.corsOrigin);
     reply.header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
     reply.header("Access-Control-Allow-Headers", "Content-Type");
     if (req.method === "OPTIONS") {
@@ -49,6 +53,8 @@ export async function startApi() {
   registerFeedRoutes(app);
   registerStatsRoutes(app);
   registerGuardianRoutes(app);
+  registerContractRoutes(app);
+  registerReplayRoutes(app);
 
   // WebSocket
   registerWebSocket(app);

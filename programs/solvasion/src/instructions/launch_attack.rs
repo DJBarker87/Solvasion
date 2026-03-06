@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, SeasonCounters, Player, Hex, AdjacencySet, Attack, AttackResult, Phase};
+use crate::state::{Season, SeasonCounters, Player, Hex, AdjacencySet, Attack, AttackResult, Phase, Pact};
 use crate::errors::SolvasionError;
-use crate::helpers::{effective_phase, recalculate_energy, apply_pending_shield, is_in_shield_window};
-use crate::events::{AttackLaunched, RetaliationTokenUsed};
+use crate::helpers::{effective_phase, recalculate_energy, apply_pending_shield, is_in_shield_window, recalculate_points};
+use crate::events::{AttackLaunched, RetaliationTokenUsed, PactBroken};
 
 #[derive(Accounts)]
 #[instruction(target_hex_id: u64, origin_hex_id: u64, energy_committed: u32, adjacency_chunk_index: u8)]
@@ -94,8 +94,8 @@ pub struct LaunchAttack<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(
-    ctx: Context<LaunchAttack>,
+pub fn handler<'info>(
+    ctx: Context<'_, '_, 'info, 'info, LaunchAttack<'info>>,
     target_hex_id: u64,
     origin_hex_id: u64,
     energy_committed: u32,
@@ -249,6 +249,43 @@ pub fn handler(
     attacker.attacks_launched = attacker.attacks_launched
         .checked_add(1)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+    // Pact-break check: scan remaining_accounts for an active Pact between attacker and defender
+    for account_info in ctx.remaining_accounts.iter() {
+        if let Ok(pact) = Account::<Pact>::try_from(account_info) {
+            let attacker_key = attacker.player;
+            let defender_key = hex_target.owner;
+            let sorted_a = if attacker_key < defender_key { attacker_key } else { defender_key };
+            let sorted_b = if attacker_key < defender_key { defender_key } else { attacker_key };
+
+            if pact.season_id == season.season_id
+                && pact.player_a == sorted_a
+                && pact.player_b == sorted_b
+                && pact.accepted
+                && !pact.broken
+                && now < pact.expires_at
+            {
+                // Pact exists and is active — deduct penalty points from attacker
+                recalculate_points(attacker, season, now)?;
+                attacker.points = attacker.points.saturating_sub(season.pact_break_penalty_points as u64);
+
+                // Mark pact as broken (need mutable access)
+                let mut pact_data = account_info.try_borrow_mut_data()?;
+                // broken field is at offset: 8 (discriminator) + 8 (season_id) + 32 (player_a) + 32 (player_b) + 8 (expires_at) = 88
+                pact_data[88] = 1; // broken = true
+                // broken_by starts at offset 89 (32 bytes)
+                pact_data[89..121].copy_from_slice(&attacker_key.to_bytes());
+
+                emit!(PactBroken {
+                    season_id: season.season_id,
+                    broken_by: attacker_key,
+                    victim: defender_key,
+                    penalty_points: season.pact_break_penalty_points,
+                });
+                break;
+            }
+        }
+    }
 
     // Consume retaliation token if used
     if retaliation_used {

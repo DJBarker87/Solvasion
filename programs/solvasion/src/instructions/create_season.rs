@@ -20,6 +20,7 @@ pub struct CreateSeasonParams {
     pub energy_per_landmark_per_hour: u16,
     pub energy_cap: u32,
     pub starting_energy: u32,
+    pub late_join_bonus_energy: u32,
     pub claim_cost: u32,
     pub min_attack_energy: u32,
 
@@ -52,6 +53,8 @@ pub struct CreateSeasonParams {
 
     // Combat bonuses
     pub capture_bonus_points: u32,
+    pub landmark_capture_bonus_points: u32,
+    pub defence_win_bonus_points: u32,
     pub attack_refund_bps: u16,
     pub attack_refund_min_threshold_multiplier: u8,
     pub retaliation_discount_bps: u16,
@@ -61,6 +64,22 @@ pub struct CreateSeasonParams {
     // Clutch
     pub clutch_defence_bonus_points: u32,
     pub clutch_window_seconds: i64,
+
+    // Theatre earliest start
+    pub theatre_earliest_start: i64,
+
+    // Fortification bonus
+    pub fortification_bonus_bps_per_day: u16,
+    pub fortification_max_bps: u16,
+
+    // Comeback burst
+    pub comeback_energy: u32,
+    pub comeback_threshold: u32,
+    pub comeback_min_peak: u32,
+
+    // Pacts
+    pub pact_break_penalty_points: u32,
+    pub pact_max_duration: i64,
 
     // Landmarks
     pub landmarks: Vec<u64>,
@@ -142,6 +161,7 @@ pub fn handler(ctx: Context<CreateSeason>, params: CreateSeasonParams) -> Result
     season.energy_per_landmark_per_hour = params.energy_per_landmark_per_hour;
     season.energy_cap = params.energy_cap;
     season.starting_energy = params.starting_energy;
+    season.late_join_bonus_energy = params.late_join_bonus_energy;
     season.claim_cost = params.claim_cost;
     season.min_attack_energy = params.min_attack_energy;
 
@@ -179,6 +199,8 @@ pub fn handler(ctx: Context<CreateSeason>, params: CreateSeasonParams) -> Result
 
     // Combat bonuses
     season.capture_bonus_points = params.capture_bonus_points;
+    season.landmark_capture_bonus_points = params.landmark_capture_bonus_points;
+    season.defence_win_bonus_points = params.defence_win_bonus_points;
     season.attack_refund_bps = params.attack_refund_bps;
     season.attack_refund_min_threshold_multiplier = params.attack_refund_min_threshold_multiplier;
     season.retaliation_discount_bps = params.retaliation_discount_bps;
@@ -198,6 +220,22 @@ pub fn handler(ctx: Context<CreateSeason>, params: CreateSeasonParams) -> Result
     season.finalization_leader_score = 0;
     season.finalization_complete = false;
     season.cleanup_complete = false;
+
+    // Theatre earliest start
+    season.theatre_earliest_start = params.theatre_earliest_start;
+
+    // Fortification
+    season.fortification_bonus_bps_per_day = params.fortification_bonus_bps_per_day;
+    season.fortification_max_bps = params.fortification_max_bps;
+
+    // Comeback
+    season.comeback_energy = params.comeback_energy;
+    season.comeback_threshold = params.comeback_threshold;
+    season.comeback_min_peak = params.comeback_min_peak;
+
+    // Pacts
+    season.pact_break_penalty_points = params.pact_break_penalty_points;
+    season.pact_max_duration = params.pact_max_duration;
 
     // Landmarks
     season.landmark_count = params.landmarks.len() as u8;

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { Player } from '../types';
 import { fetchLeaderboard } from '../api';
 
-const POLL_INTERVAL = 60_000; // 60s
+const POLL_INTERVAL = 120_000; // 120s (WS handles real-time updates)
 
 export function useLeaderboard(seasonId: number | null) {
   const [players, setPlayers] = useState<Player[]>([]);

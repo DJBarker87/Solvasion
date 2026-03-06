@@ -39,3 +39,5 @@ test-ledger/
 
 # Lock files (regenerated from package.json)
 # Keep package-lock.json for reproducible builds
+.vercel
+.env*.local

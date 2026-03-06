@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { FeedItem } from '../../types';
 
 function formatTime(ts: number): string {
@@ -20,7 +20,7 @@ interface WarFeedProps {
   items: FeedItem[];
 }
 
-export default function WarFeed({ items }: WarFeedProps) {
+export default React.memo(function WarFeed({ items }: WarFeedProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,4 +47,4 @@ export default function WarFeed({ items }: WarFeedProps) {
       )}
     </div>
   );
-}
+});

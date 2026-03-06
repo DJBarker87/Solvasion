@@ -4202,6 +4202,10 @@
             "type": "u32"
           },
           {
+            "name": "late_join_bonus_energy",
+            "type": "u32"
+          },
+          {
             "name": "claim_cost",
             "type": "u32"
           },
@@ -4279,6 +4283,10 @@
           },
           {
             "name": "capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "defence_win_bonus_points",
             "type": "u32"
           },
           {
@@ -5153,6 +5161,10 @@
             "type": "u32"
           },
           {
+            "name": "late_join_bonus_energy",
+            "type": "u32"
+          },
+          {
             "name": "claim_cost",
             "type": "u32"
           },
@@ -5260,6 +5272,10 @@
           },
           {
             "name": "capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "defence_win_bonus_points",
             "type": "u32"
           },
           {

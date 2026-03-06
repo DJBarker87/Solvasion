@@ -28,10 +28,13 @@ export async function deleteGuardianPacket(
   wallet: string,
   signature: string,
 ): Promise<boolean> {
-  const params = new URLSearchParams({ wallet, signature });
   const res = await fetch(
-    `${API}/api/guardian/packets/${seasonId}/${hexId}?${params}`,
-    { method: 'DELETE' },
+    `${API}/api/guardian/packets/${seasonId}/${hexId}/delete`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wallet, signature }),
+    },
   );
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));

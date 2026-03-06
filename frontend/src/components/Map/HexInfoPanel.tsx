@@ -1,3 +1,4 @@
+import React from 'react';
 import type { EnrichedHex, Player } from '../../types';
 import ActionBar from '../ActionBar';
 import * as ledger from '../../solana/defenceLedger';
@@ -19,7 +20,7 @@ interface HexInfoPanelProps {
   onAttack: (hexId: string) => void;
 }
 
-export default function HexInfoPanel({
+export default React.memo(function HexInfoPanel({
   hex, onClose, playerWallet, playerData, seasonId, ownedHexIds, seasonPhase,
   onClaim, onGarrison, onAttack,
 }: HexInfoPanelProps) {
@@ -35,7 +36,7 @@ export default function HexInfoPanel({
     <div className="absolute bottom-4 left-4 bg-gray-900/95 border border-gray-700 rounded-lg p-4 max-w-xs shadow-xl backdrop-blur-sm z-10">
       <div className="flex items-start justify-between mb-2">
         <h3 className="text-white font-semibold text-sm">
-          {hex.landmarkName ?? hex.h3Index.slice(0, 10)}
+          {hex.landmarkName ?? (hex.regionName ? `${hex.regionName} · ${hex.hexId.slice(0, 8)}` : hex.h3Index.slice(0, 10))}
         </h3>
         <button
           onClick={onClose}
@@ -59,6 +60,15 @@ export default function HexInfoPanel({
             Your garrison: <span className="text-green-300">{garrisonEntry.amount} energy</span>
           </div>
         )}
+
+        {hex.owner && hex.claimedAt && (() => {
+          const daysHeld = Math.floor((Date.now() / 1000 - hex.claimedAt) / 86400);
+          if (daysHeld <= 0) return null;
+          const bonus = Math.min(daysHeld * 10, 50);
+          return (
+            <div>Fortified: <span className="text-cyan-300">+{bonus}% ({daysHeld} day{daysHeld > 1 ? 's' : ''} held)</span></div>
+          );
+        })()}
 
         <div className="flex gap-2 mt-2 flex-wrap">
           {hex.isLandmark && (
@@ -84,16 +94,20 @@ export default function HexInfoPanel({
         </div>
       </div>
 
-      <ActionBar
-        hex={hex}
-        playerWallet={playerWallet}
-        playerData={playerData}
-        ownedHexIds={ownedHexIds}
-        seasonPhase={seasonPhase}
-        onClaim={onClaim}
-        onGarrison={onGarrison}
-        onAttack={onAttack}
-      />
+      {!playerWallet || !playerData ? (
+        <div className="text-gray-500 text-xs mt-3">Join the season to claim hexes</div>
+      ) : (
+        <ActionBar
+          hex={hex}
+          playerWallet={playerWallet}
+          playerData={playerData}
+          ownedHexIds={ownedHexIds}
+          seasonPhase={seasonPhase}
+          onClaim={onClaim}
+          onGarrison={onGarrison}
+          onAttack={onAttack}
+        />
+      )}
     </div>
   );
-}
+});

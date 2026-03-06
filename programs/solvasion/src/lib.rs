@@ -38,6 +38,10 @@ use instructions::close_season_player::*;
 use instructions::recover_phantom_energy::*;
 use instructions::clear_phantom_energy::*;
 use instructions::set_active_theatres::*;
+use instructions::batch_recover_phantom::*;
+use instructions::batch_recommit_defence::*;
+use instructions::propose_pact::*;
+use instructions::accept_pact::*;
 
 declare_id!("98VnxqEX7SBwLGJVAVeLSfQPEUDGwBEpQWwugvjPeAfM");
 
@@ -171,8 +175,8 @@ pub mod solvasion {
         )
     }
 
-    pub fn launch_attack(
-        ctx: Context<LaunchAttack>,
+    pub fn launch_attack<'info>(
+        ctx: Context<'_, '_, 'info, 'info, LaunchAttack<'info>>,
         target_hex_id: u64,
         origin_hex_id: u64,
         energy_committed: u32,
@@ -241,5 +245,26 @@ pub mod solvasion {
         expires_at: i64,
     ) -> Result<()> {
         instructions::set_active_theatres::handler(ctx, theatre_regions, expires_at)
+    }
+
+    pub fn batch_recover_phantom<'info>(
+        ctx: Context<'_, '_, 'info, 'info, BatchRecoverPhantom<'info>>,
+    ) -> Result<()> {
+        instructions::batch_recover_phantom::handler(ctx)
+    }
+
+    pub fn batch_recommit_defence<'info>(
+        ctx: Context<'_, '_, 'info, 'info, BatchRecommitDefence<'info>>,
+        entries: Vec<RecommitEntry>,
+    ) -> Result<()> {
+        instructions::batch_recommit_defence::handler(ctx, entries)
+    }
+
+    pub fn propose_pact(ctx: Context<ProposePact>, duration: i64, sorted_a: Pubkey, sorted_b: Pubkey) -> Result<()> {
+        instructions::propose_pact::handler(ctx, duration, sorted_a, sorted_b)
+    }
+
+    pub fn accept_pact(ctx: Context<AcceptPact>) -> Result<()> {
+        instructions::accept_pact::handler(ctx)
     }
 }

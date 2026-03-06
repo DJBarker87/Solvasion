@@ -1,8 +1,11 @@
 import { useState, type ReactNode } from 'react';
-import type { Season, Player, FeedItem } from '../../types';
+import type { Season, Player, FeedItem, Attack, EnrichedHex } from '../../types';
+import type { MapLookups } from '../../utils/mapData';
 import SeasonInfo from './SeasonInfo';
 import Leaderboard from './Leaderboard';
 import WarFeed from './WarFeed';
+import OrdersPanel from './OrdersPanel';
+import ContractsPanel from './ContractsPanel';
 import WalletButton from '../WalletButton';
 
 interface SidebarProps {
@@ -18,11 +21,21 @@ interface SidebarProps {
   guardianSyncedCount?: number;
   guardianTotalHexes?: number;
   onGuardianSyncAll?: () => void;
+  // Orders panel props
+  hexes?: EnrichedHex[];
+  pendingAttacks?: Attack[];
+  lookups?: MapLookups | null;
+  walletStr?: string | null;
+  onReveal?: (attackId: number, hexId: string, attackerWallet: string) => void;
+  onGarrison?: (hexId: string) => void;
+  onAttack?: (hexId: string) => void;
+  apiBase?: string;
 }
 
 export default function Sidebar({
   season, players, feedItems, playerData, children, onToggle, connected,
   guardianEnabled, onGuardianToggle, guardianSyncedCount, guardianTotalHexes, onGuardianSyncAll,
+  hexes, pendingAttacks, lookups, walletStr, onReveal, onGarrison, onAttack, apiBase,
 }: SidebarProps) {
   const [open, setOpen] = useState(true);
 
@@ -124,6 +137,26 @@ export default function Sidebar({
         </div>
 
         {children}
+        {playerData && season && hexes && walletStr && onReveal && onGarrison && onAttack && (
+          <OrdersPanel
+            hexes={hexes}
+            playerData={playerData}
+            season={season}
+            pendingAttacks={pendingAttacks ?? []}
+            lookups={lookups ?? null}
+            walletStr={walletStr}
+            onReveal={onReveal}
+            onGarrison={onGarrison}
+            onAttack={onAttack}
+          />
+        )}
+        {playerData && season && walletStr && apiBase && (
+          <ContractsPanel
+            seasonId={season.season_id}
+            walletStr={walletStr}
+            apiBase={apiBase}
+          />
+        )}
         <SeasonInfo season={season} />
         <Leaderboard players={players} />
         <WarFeed items={feedItems} />

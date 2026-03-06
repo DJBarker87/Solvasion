@@ -56,6 +56,13 @@ pub fn handler(ctx: Context<JoinSeason>) -> Result<()> {
     player.player = ctx.accounts.player_wallet.key();
     player.season_id = season.season_id;
     player.energy_balance = season.starting_energy;
+    // Late-joiner catch-up: bonus energy if joining after war has started
+    if now > season.war_start {
+        player.energy_balance = player.energy_balance
+            .checked_add(season.late_join_bonus_energy)
+            .ok_or(SolvasionError::ArithmeticOverflow)?;
+        player.energy_balance = std::cmp::min(player.energy_balance, season.energy_cap);
+    }
     player.energy_committed = 0;
     player.last_energy_update = now;
     player.hex_count = 0;

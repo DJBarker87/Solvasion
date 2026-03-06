@@ -8,6 +8,7 @@ pub mod valid_hex_set;
 pub mod adjacency_set;
 pub mod reputation;
 pub mod phantom_recovery;
+pub mod pact;
 
 pub use global_config::*;
 pub use season::*;
@@ -19,3 +20,4 @@ pub use valid_hex_set::*;
 pub use adjacency_set::*;
 pub use reputation::*;
 pub use phantom_recovery::*;
+pub use pact::*;

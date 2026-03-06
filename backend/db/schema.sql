@@ -155,6 +155,48 @@ CREATE TABLE IF NOT EXISTS bot_hex_secrets (
   PRIMARY KEY (season_id, bot_name, hex_id)
 );
 
+-- Daily contracts
+CREATE TABLE IF NOT EXISTS contracts (
+  contract_id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  season_id       INTEGER NOT NULL,
+  contract_type   TEXT NOT NULL,
+  target_region   INTEGER,
+  target_count    INTEGER DEFAULT 1,
+  bonus_points    INTEGER NOT NULL,
+  generated_at    INTEGER NOT NULL,
+  expires_at      INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS contract_progress (
+  contract_id     INTEGER NOT NULL,
+  wallet          TEXT NOT NULL,
+  current_count   INTEGER DEFAULT 0,
+  completed       INTEGER DEFAULT 0,
+  completed_at    INTEGER,
+  PRIMARY KEY (contract_id, wallet)
+);
+
+-- Pacts
+CREATE TABLE IF NOT EXISTS pacts (
+  season_id       INTEGER NOT NULL,
+  player_a        TEXT NOT NULL,
+  player_b        TEXT NOT NULL,
+  expires_at      INTEGER NOT NULL,
+  accepted        INTEGER DEFAULT 0,
+  broken          INTEGER DEFAULT 0,
+  broken_by       TEXT,
+  created_at      INTEGER NOT NULL,
+  PRIMARY KEY (season_id, player_a, player_b)
+);
+
+-- Telegram notification subscriptions
+CREATE TABLE IF NOT EXISTS telegram_subscriptions (
+  wallet          TEXT PRIMARY KEY,
+  chat_id         TEXT NOT NULL,
+  enabled         INTEGER NOT NULL DEFAULT 1,
+  created_at      INTEGER NOT NULL
+);
+
 -- Indexes for common queries
 CREATE INDEX IF NOT EXISTS idx_players_season ON players(season_id);
 CREATE INDEX IF NOT EXISTS idx_players_points ON players(season_id, points DESC);
@@ -165,3 +207,5 @@ CREATE INDEX IF NOT EXISTS idx_attacks_pending ON attacks(season_id, resolved, d
 CREATE INDEX IF NOT EXISTS idx_attacks_defender ON attacks(season_id, defender, resolved);
 CREATE INDEX IF NOT EXISTS idx_war_feed_season ON war_feed(season_id, feed_id DESC);
 CREATE INDEX IF NOT EXISTS idx_events_season ON events(season_id, event_id);
+CREATE INDEX IF NOT EXISTS idx_attacks_expiry ON attacks(resolved, deadline);
+CREATE INDEX IF NOT EXISTS idx_events_slot ON events(season_id, slot);

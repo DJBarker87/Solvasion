@@ -8,6 +8,7 @@ import { submitRevealDefence } from "../utils/reveal.js";
 import { logger } from "../utils/logger.js";
 import { BOT_NAMES, deriveBotKeypair, ensureBotFunded, type BotName } from "./wallet.js";
 import { botTick } from "./strategy.js";
+import { startIncursionScheduler, stopIncursionScheduler } from "./incursions.js";
 
 interface BotInstance {
   name: BotName;
@@ -84,6 +85,9 @@ export async function startBots(): Promise<boolean> {
     }, initialDelay);
   });
 
+  // Start incursion scheduler
+  startIncursionScheduler(seasonId);
+
   enabled = true;
   logger.info(`Bot controller started — ${bots.length} bots for season ${seasonId}`);
   return true;
@@ -155,5 +159,6 @@ export function stopBots() {
   }
   bots = [];
   enabled = false;
+  stopIncursionScheduler();
   logger.info("Bot controller stopped");
 }

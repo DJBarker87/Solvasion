@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { EnrichedHex, Player, Season } from '../types';
+import type { MapLookups } from '../utils/mapData';
 import { getAdjacent } from '../utils/adjacency';
 
 interface AttackModalProps {
@@ -7,12 +8,13 @@ interface AttackModalProps {
   season: Season;
   playerData: Player;
   ownedHexIds: Set<string>;
+  lookups: MapLookups | null;
   onAttack: (targetHexId: string, originHexId: string, energy: number) => void;
   onClose: () => void;
 }
 
 export default function AttackModal({
-  targetHex, season, playerData, ownedHexIds, onAttack, onClose,
+  targetHex, season, playerData, ownedHexIds, lookups, onAttack, onClose,
 }: AttackModalProps) {
   // Find owned hexes adjacent to the target
   const adjacentToTarget = getAdjacent(targetHex.hexId);
@@ -36,12 +38,28 @@ export default function AttackModal({
     onClose();
   };
 
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  const hexLabel = (id: string) => {
+    if (!lookups) return id.slice(0, 12) + '...';
+    const landmark = lookups.landmarksByU64.get(id);
+    if (landmark) return landmark.name;
+    const regionId = lookups.u64ToRegionId.get(id);
+    const region = regionId != null ? lookups.regionSummary.get(regionId) : undefined;
+    return region ? `${region.name} · ${id.slice(0, 8)}` : id.slice(0, 12) + '...';
+  };
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60" role="dialog" aria-modal="true" aria-labelledby="attack-title">
       <div className="bg-gray-900 border border-gray-700 rounded-lg p-5 w-80 shadow-2xl">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-white font-semibold text-sm">Launch Attack</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white text-xs cursor-pointer">X</button>
+          <h3 id="attack-title" className="text-white font-semibold text-sm">Launch Attack</h3>
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-white text-xs cursor-pointer">X</button>
         </div>
 
         <div className="text-xs text-gray-400 mb-1">
@@ -59,7 +77,7 @@ export default function AttackModal({
             className="w-full bg-gray-800 text-white text-xs p-2 rounded border border-gray-700"
           >
             {originOptions.map(id => (
-              <option key={id} value={id}>{id.slice(0, 12)}...</option>
+              <option key={id} value={id}>{hexLabel(id)}</option>
             ))}
           </select>
         </div>

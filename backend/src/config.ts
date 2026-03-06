@@ -12,7 +12,7 @@ export const config = {
 
   // Crank
   crankKeypairPath:
-    process.env.CRANK_KEYPAIR_PATH ?? `${process.env.HOME}/.config/solana/id.json`,
+    process.env.CRANK_KEYPAIR_PATH ?? "",
   crankMinBalance: 0.1, // SOL — warn if below
 
   // API
@@ -40,6 +40,13 @@ export const config = {
   guardianKeypairPath: process.env.GUARDIAN_KEYPAIR_PATH ?? "",
   guardianMasterKey: process.env.GUARDIAN_MASTER_KEY ?? "",
 
+  // CORS
+  corsOrigin: process.env.CORS_ORIGIN ?? "*",
+
   // Bots
   botSeed: process.env.BOT_SEED ?? "",
+
+  // Telegram
+  tgBotToken: process.env.TG_BOT_TOKEN ?? "",
+  tgEnabled: process.env.TG_ENABLED === "true",
 } as const;

@@ -34,6 +34,7 @@ pub struct Season {
     pub energy_per_landmark_per_hour: u16,
     pub energy_cap: u32,
     pub starting_energy: u32,
+    pub late_join_bonus_energy: u32,
     pub claim_cost: u32,
     pub min_attack_energy: u32,
 
@@ -71,6 +72,8 @@ pub struct Season {
 
     // Combat bonuses
     pub capture_bonus_points: u32,
+    pub landmark_capture_bonus_points: u32,
+    pub defence_win_bonus_points: u32,
     pub attack_refund_bps: u16,
     pub attack_refund_min_threshold_multiplier: u8,
     pub retaliation_discount_bps: u16,
@@ -90,6 +93,22 @@ pub struct Season {
     pub finalization_leader_score: u64,
     pub finalization_complete: bool,
     pub cleanup_complete: bool,
+
+    // Theatre earliest start
+    pub theatre_earliest_start: i64,
+
+    // Fortification bonus
+    pub fortification_bonus_bps_per_day: u16,  // +10% = 1000 bps per day
+    pub fortification_max_bps: u16,            // cap at 5000 bps = 50%
+
+    // Comeback burst
+    pub comeback_energy: u32,        // energy granted on comeback (e.g. 200)
+    pub comeback_threshold: u32,     // hex count below which comeback triggers (e.g. 3)
+    pub comeback_min_peak: u32,      // min peak hex count to qualify (e.g. 10)
+
+    // Pacts
+    pub pact_break_penalty_points: u32,  // points deducted for breaking a pact (e.g. 500)
+    pub pact_max_duration: i64,          // max pact duration in seconds (e.g. 48h = 172800)
 
     // Landmarks
     pub landmark_count: u8,

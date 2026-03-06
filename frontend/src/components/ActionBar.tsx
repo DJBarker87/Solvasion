@@ -1,3 +1,4 @@
+import React from 'react';
 import type { EnrichedHex, Player } from '../types';
 import { getAdjacent } from '../utils/adjacency';
 
@@ -12,7 +13,7 @@ interface ActionBarProps {
   onAttack: (hexId: string) => void;
 }
 
-export default function ActionBar({
+export default React.memo(function ActionBar({
   hex, playerWallet, playerData, ownedHexIds, seasonPhase,
   onClaim, onGarrison, onAttack,
 }: ActionBarProps) {
@@ -63,4 +64,4 @@ export default function ActionBar({
       )}
     </div>
   );
-}
+});

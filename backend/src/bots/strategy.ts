@@ -10,8 +10,23 @@ import {
 import { createCommitment, randomBlind } from "../utils/pedersen.js";
 import { logger } from "../utils/logger.js";
 import type { BotName } from "./wallet.js";
+import { BOT_PERSONALITIES } from "./config.js";
+import { getActiveIncursionRegion } from "./incursions.js";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Pick from candidates with preference for the bot's preferred region.
+ * 70% chance to pick from preferred region if available, else random.
+ */
+function pickWithRegionPreference(botName: BotName, candidates: any[]): any {
+  const preferred = BOT_PERSONALITIES[botName].preferredRegion;
+  const inRegion = candidates.filter((h: any) => h.region_id === preferred);
+  if (inRegion.length > 0 && Math.random() < 0.7) {
+    return inRegion[Math.floor(Math.random() * inRegion.length)];
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
 
 /**
  * Run a single tick for a bot. Called every 30s (staggered per bot).
@@ -125,7 +140,7 @@ async function tryClaim(
   const unclaimed = allHexes.filter((h: any) => !h.owner);
   if (unclaimed.length === 0) return false;
 
-  const target = unclaimed[Math.floor(Math.random() * unclaimed.length)];
+  const target = pickWithRegionPreference(botName, unclaimed);
   const hexBN = new BN(target.hex_id);
   const seasonBN = new BN(seasonId);
   const programId = config.programId;
@@ -288,8 +303,33 @@ async function tryAttack(
   );
   if (enemyHexes.length === 0) return;
 
-  const target = enemyHexes[Math.floor(Math.random() * enemyHexes.length)];
-  const attackEnergy = 20 + Math.floor(Math.random() * 21); // 20-40
+  // Prioritize incursion region, then landmarks, then region preference
+  const incursionRegion = getActiveIncursionRegion(botName);
+  let target: any;
+  if (incursionRegion !== null) {
+    const inRegion = enemyHexes.filter((h: any) => h.region_id === incursionRegion);
+    target = inRegion.length > 0
+      ? inRegion[Math.floor(Math.random() * inRegion.length)]
+      : pickWithRegionPreference(botName, enemyHexes);
+  } else {
+    // Prioritize landmarks 40% of the time
+    const landmarks = enemyHexes.filter((h: any) => h.is_landmark);
+    if (landmarks.length > 0 && Math.random() < 0.4) {
+      target = landmarks[Math.floor(Math.random() * landmarks.length)];
+    } else {
+      target = pickWithRegionPreference(botName, enemyHexes);
+    }
+  }
+
+  // Scale attack energy with season phase
+  const seasonData = stmts.getSeason.get(seasonId) as any;
+  const phase = seasonData?.phase ?? "War";
+  let baseMin = 20, baseMax = 40;
+  if (phase === "EscalationStage1") { baseMin = 30; baseMax = 55; }
+  else if (phase === "EscalationStage2") { baseMin = 40; baseMax = 70; }
+  // During incursion, attack harder
+  if (incursionRegion !== null) { baseMin += 10; baseMax += 15; }
+  const attackEnergy = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
 
   const programId = config.programId;
   const seasonBN = new BN(seasonId);

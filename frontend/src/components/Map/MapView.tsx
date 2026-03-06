@@ -6,6 +6,7 @@ import type { HexFeatureProps } from '../../types';
 const SOURCE_ID = 'hexes';
 const FILL_LAYER = 'hex-fill';
 const LINE_LAYER = 'hex-line';
+const LINE_DASHED_LAYER = 'hex-line-dashed';
 const SELECTED_LAYER = 'hex-selected';
 
 interface MapViewProps {
@@ -51,7 +52,7 @@ export default function MapView({ token, geoJson, selectedHexId, onHexClick }: M
         source: SOURCE_ID,
         paint: {
           'fill-color': ['get', 'fillColor'],
-          'fill-opacity': 1,
+          'fill-opacity': ['get', 'opacity'],
         },
       });
 
@@ -59,9 +60,22 @@ export default function MapView({ token, geoJson, selectedHexId, onHexClick }: M
         id: LINE_LAYER,
         type: 'line',
         source: SOURCE_ID,
+        filter: ['!=', ['get', 'underAttackDash'], true],
         paint: {
           'line-color': ['get', 'lineColor'],
           'line-width': ['get', 'lineWidth'],
+        },
+      });
+
+      map.addLayer({
+        id: LINE_DASHED_LAYER,
+        type: 'line',
+        source: SOURCE_ID,
+        filter: ['==', ['get', 'underAttackDash'], true],
+        paint: {
+          'line-color': '#ff6600',
+          'line-width': 2.5,
+          'line-dasharray': [4, 2],
         },
       });
 

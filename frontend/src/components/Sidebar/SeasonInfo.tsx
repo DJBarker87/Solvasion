@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Season } from '../../types';
 
 const PHASE_COLORS: Record<string, string> = {
@@ -6,6 +7,14 @@ const PHASE_COLORS: Record<string, string> = {
   EscalationStage1: 'bg-orange-900 text-orange-300',
   EscalationStage2: 'bg-red-800 text-red-200',
   Ended: 'bg-gray-700 text-gray-300',
+};
+
+const PHASE_EXPLANATIONS: Record<string, string> = {
+  LandRush: 'Claim unclaimed hexes. No attacks allowed.',
+  War: 'Attacks are open. Defend your territory.',
+  EscalationStage1: '1.5x energy generation. Attacks cost less.',
+  EscalationStage2: '2x energy generation. Final push for victory.',
+  Ended: 'Season complete. Winner declared.',
 };
 
 function formatCountdown(targetTs: number | null): string {
@@ -36,10 +45,12 @@ interface SeasonInfoProps {
 }
 
 export default function SeasonInfo({ season }: SeasonInfoProps) {
+  const [showPhaseHelp, setShowPhaseHelp] = useState(false);
+
   if (!season) {
     return (
       <div className="p-4">
-        <p className="text-gray-500 text-sm">No active season</p>
+        <p className="text-gray-400 text-sm">No active season. Check back soon!</p>
       </div>
     );
   }
@@ -54,7 +65,20 @@ export default function SeasonInfo({ season }: SeasonInfoProps) {
         <span className={`text-xs px-2 py-0.5 rounded ${phaseClass}`}>
           {season.phase}
         </span>
+        <button
+          onClick={() => setShowPhaseHelp(!showPhaseHelp)}
+          className="text-gray-500 hover:text-gray-300 text-xs cursor-pointer"
+          aria-label="Phase explanation"
+        >
+          [?]
+        </button>
       </div>
+
+      {showPhaseHelp && (
+        <div className="text-xs text-gray-400 bg-gray-800/60 rounded p-2 mb-3">
+          {PHASE_EXPLANATIONS[season.phase] ?? 'Unknown phase.'}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="text-gray-400">

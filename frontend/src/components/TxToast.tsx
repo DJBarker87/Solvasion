@@ -41,11 +41,13 @@ export default function TxToast({ tx, onDismiss }: TxToastProps) {
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <div className={`text-sm font-medium ${textColor}`}>
-            {tx.state === 'pending' && 'Sending transaction...'}
+            {tx.state === 'pending' && (tx.message || 'Sending transaction...')}
             {tx.state === 'confirmed' && 'Transaction confirmed'}
             {tx.state === 'error' && 'Transaction failed'}
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">{tx.message}</div>
+          {tx.state !== 'pending' && (
+            <div className="text-xs text-gray-400 mt-0.5">{tx.message}</div>
+          )}
           {tx.signature && (
             <a
               href={`${EXPLORER}/${tx.signature}?cluster=devnet`}

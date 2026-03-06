@@ -212,6 +212,25 @@ export function findReputation(
   );
 }
 
+export function findPact(
+  programId: PublicKey,
+  seasonId: BN,
+  playerA: PublicKey,
+  playerB: PublicKey
+): [PublicKey, number] {
+  const sortedA = playerA.toBuffer().compare(playerB.toBuffer()) < 0 ? playerA : playerB;
+  const sortedB = playerA.toBuffer().compare(playerB.toBuffer()) < 0 ? playerB : playerA;
+  return PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("pact"),
+      seasonId.toArrayLike(Buffer, "le", 8),
+      sortedA.toBuffer(),
+      sortedB.toBuffer(),
+    ],
+    programId
+  );
+}
+
 export function findPhantomRecovery(
   programId: PublicKey,
   seasonId: BN,
@@ -320,7 +339,7 @@ export async function createTestSeason(
     ? new BN(Math.min(now - 1, seasonEndTs - 2))
     : new BN(now + 7 * oneDay);
   const escalationStart = new BN(
-    Math.min(now + 21 * oneDay, seasonEndTs - 1)
+    Math.min(now + 14 * oneDay, seasonEndTs - 1)
   );
   const joinCutoff = new BN(Math.min(now + 14 * oneDay, seasonEndTs + oneDay));
 
@@ -339,6 +358,7 @@ export async function createTestSeason(
       energyPerLandmarkPerHour: 20,
       energyCap: 500,
       startingEnergy: 100,
+      lateJoinBonusEnergy: 250,
       claimCost: 10,
       minAttackEnergy: 20,
       baseAttackWindow: new BN(shortCooldowns ? 5 : 4 * 3600), // 5s for tests, 4h normal
@@ -349,16 +369,18 @@ export async function createTestSeason(
       maxRespawnsPerSeason: 3,
       pointsPerHexPerHour: 10,
       pointsPerLandmarkPerHour: 20,
-      victoryThreshold: options.victoryThreshold ?? new BN(50000),
+      victoryThreshold: options.victoryThreshold ?? new BN(100000),
       escalationEnergyMultiplierBps: 15000, // 150%
       escalationAttackCostMultiplierBps: 8000, // 80%
-      escalationStage2Start: new BN(Math.min(now + 25 * oneDay, seasonEndTs - 1)),
+      escalationStage2Start: new BN(Math.min(now + 20 * oneDay, seasonEndTs - 1)),
       escalationStage2EnergyMultiplierBps: 20000,
       escalationStage2AttackCostMultiplierBps: 6000,
       escalationStage2LandmarkMultiplierBps: 20000,
-      theatreCaptureBonusPoints: 100,
+      theatreCaptureBonusPoints: 200,
       theatreDefenceBonusPoints: 50,
       captureBonusPoints: 25,
+      landmarkCaptureBonusPoints: 100,
+      defenceWinBonusPoints: 15,
       attackRefundBps: 1000, // 10%
       attackRefundMinThresholdMultiplier: 3,
       retaliationDiscountBps: 2500, // 25%
@@ -366,6 +388,14 @@ export async function createTestSeason(
       retaliationWindowSeconds: new BN(12 * 3600),
       clutchDefenceBonusPoints: 50,
       clutchWindowSeconds: new BN(300), // 5 min
+      theatreEarliestStart: new BN(now - 1), // allow immediate theatre activation in tests
+      fortificationBonusBpsPerDay: 1000, // +10% per day
+      fortificationMaxBps: 5000,         // cap at +50%
+      comebackEnergy: 200,
+      comebackThreshold: 3,
+      comebackMinPeak: 10,
+      pactBreakPenaltyPoints: 500,
+      pactMaxDuration: new BN(48 * 3600),
       landmarks: [TEST_LANDMARK],
     })
     .accounts({

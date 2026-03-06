@@ -29,3 +29,7 @@ pub mod close_season_player;
 pub mod recover_phantom_energy;
 pub mod clear_phantom_energy;
 pub mod set_active_theatres;
+pub mod batch_recover_phantom;
+pub mod batch_recommit_defence;
+pub mod propose_pact;
+pub mod accept_pact;

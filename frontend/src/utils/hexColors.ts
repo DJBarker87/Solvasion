@@ -36,7 +36,7 @@ export const COLORS = {
   unownedFill: 'rgba(40, 40, 50, 0.4)',
   unownedLine: 'rgba(100, 100, 120, 0.6)',
   landmarkLine: '#ffd700',        // gold
-  underAttackLine: '#ff3333',     // red
+  underAttackLine: '#ff6600',     // orange (colorblind-friendly vs green)
   garrisonedLine: '#44ff88',      // green
   selectedLine: '#ffffff',        // white
   defaultLine: 'rgba(150, 150, 170, 0.5)',

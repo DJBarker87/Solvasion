@@ -221,6 +221,63 @@ pub struct ClutchDefence {
 }
 
 #[event]
+pub struct LandmarkCaptureBonus {
+    pub season_id: u64,
+    pub player: Pubkey,
+    pub hex_id: u64,
+    pub bonus_points: u32,
+}
+
+#[event]
+pub struct BatchPhantomRecovered {
+    pub season_id: u64,
+    pub player: Pubkey,
+    pub count: u8,
+    pub total_energy_recovered: u32,
+}
+
+#[event]
+pub struct BatchDefenceRecommitted {
+    pub season_id: u64,
+    pub player: Pubkey,
+    pub count: u8,
+    pub net_energy_delta: i64,
+}
+
+#[event]
+pub struct ComebackBurst {
+    pub season_id: u64,
+    pub player: Pubkey,
+    pub energy_granted: u32,
+    pub hex_count: u32,
+    pub peak_hex_count: u32,
+}
+
+#[event]
+pub struct PactProposed {
+    pub season_id: u64,
+    pub proposer: Pubkey,
+    pub target: Pubkey,
+    pub expires_at: i64,
+}
+
+#[event]
+pub struct PactAccepted {
+    pub season_id: u64,
+    pub player_a: Pubkey,
+    pub player_b: Pubkey,
+    pub expires_at: i64,
+}
+
+#[event]
+pub struct PactBroken {
+    pub season_id: u64,
+    pub broken_by: Pubkey,
+    pub victim: Pubkey,
+    pub penalty_points: u32,
+}
+
+#[event]
 pub struct GuardianRevealSubmitted {
     pub season_id: u64,
     pub attack_id: u64,

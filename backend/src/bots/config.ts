@@ -6,6 +6,7 @@ export interface BotPersonality {
   shield: number;
   aggressiveness: number;    // 0-1, higher = more likely to attack
   defenceWeight: number;     // fraction of energy to allocate to defence
+  preferredRegion: number;   // region_id this bot gravitates toward
   taunts: {
     onAttack: string[];
     onDefend: string[];
@@ -20,6 +21,7 @@ export const BOT_PERSONALITIES: Record<BotName, BotPersonality> = {
     shield: 1,
     aggressiveness: 0.7,
     defenceWeight: 0.3,
+    preferredRegion: 5, // Italy
     taunts: {
       onAttack: [
         "The legions march upon your lands!",
@@ -46,6 +48,7 @@ export const BOT_PERSONALITIES: Record<BotName, BotPersonality> = {
     shield: 2,
     aggressiveness: 0.9,
     defenceWeight: 0.15,
+    preferredRegion: 2, // France
     taunts: {
       onAttack: [
         "First in, last out. You're finished.",
@@ -71,6 +74,7 @@ export const BOT_PERSONALITIES: Record<BotName, BotPersonality> = {
     shield: 3,
     aggressiveness: 0.3,
     defenceWeight: 0.7,
+    preferredRegion: 0, // British Isles
     taunts: {
       onAttack: [
         "A measured strike. Nothing personal.",

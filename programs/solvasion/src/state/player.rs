@@ -67,6 +67,10 @@ pub struct Player {
     // Guardian
     pub guardian: Pubkey,        // Pubkey::default() = none
     pub has_guardian: bool,
+
+    // Fortification / Comeback
+    pub peak_hex_count: u32,
+    pub comeback_used: bool,
 }
 
 impl Player {

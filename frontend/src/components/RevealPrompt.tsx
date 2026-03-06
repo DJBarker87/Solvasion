@@ -42,12 +42,17 @@ export default function RevealPrompt({ attacks, onReveal }: RevealPromptProps) {
               {atk.deadline && ` — ${formatCountdown(atk.deadline)} remaining`}
             </div>
           </div>
-          <button
-            onClick={() => onReveal(atk.attack_id, atk.target_hex, atk.attacker)}
-            className="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded cursor-pointer whitespace-nowrap"
-          >
-            Reveal Garrison
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={() => onReveal(atk.attack_id, atk.target_hex, atk.attacker)}
+              className="bg-red-600 hover:bg-red-500 text-white text-xs px-3 py-1.5 rounded cursor-pointer whitespace-nowrap"
+            >
+              Reveal Garrison
+            </button>
+            <span className="text-yellow-500/70 text-xs">
+              Win or lose, your garrison is consumed and must be recommitted.
+            </span>
+          </div>
         </div>
       ))}
     </div>

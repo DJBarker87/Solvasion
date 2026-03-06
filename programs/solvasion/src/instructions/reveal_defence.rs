@@ -6,7 +6,7 @@ use crate::crypto::verify_commitment;
 use crate::events::{
     AttackResolved, GuardianRevealSubmitted, TheatreBonusAwarded,
     AttackRefunded, RetaliationTokenGranted, VictoryThresholdReached,
-    ClutchDefence,
+    ClutchDefence, LandmarkCaptureBonus, ComebackBurst,
 };
 
 #[derive(Accounts)]
@@ -126,7 +126,18 @@ pub fn handler(
     let in_theatre = season.active_theatres.iter().any(|&r| r != 0 && r == hex.region_id)
         && now < season.theatre_expires_at;
 
-    if attacker_committed > energy_amount {
+    // Calculate fortification bonus
+    let days_held = ((now - hex.last_owner_change) / 86400) as u16;
+    let fortification_bps = std::cmp::min(
+        days_held.saturating_mul(season.fortification_bonus_bps_per_day),
+        season.fortification_max_bps,
+    );
+    let effective_defence = (energy_amount as u64)
+        .checked_mul(10_000u64.checked_add(fortification_bps as u64).ok_or(SolvasionError::ArithmeticOverflow)?)
+        .ok_or(SolvasionError::ArithmeticOverflow)?
+        / 10_000;
+
+    if (attacker_committed as u64) > effective_defence {
         // ---- ATTACKER WINS ----
         outcome = 0; // AttackerWins
 
@@ -167,6 +178,30 @@ pub fn handler(
         hex.last_owner_change = now;
         hex.last_combat_resolved = now;
 
+        // Track peak hex count for attacker
+        if attacker.hex_count > attacker.peak_hex_count {
+            attacker.peak_hex_count = attacker.hex_count;
+        }
+
+        // Comeback burst check for defender
+        if defender.hex_count < season.comeback_threshold
+            && defender.peak_hex_count >= season.comeback_min_peak
+            && !defender.comeback_used
+        {
+            let new_balance = (defender.energy_balance as u64)
+                .checked_add(season.comeback_energy as u64)
+                .ok_or(SolvasionError::ArithmeticOverflow)?;
+            defender.energy_balance = std::cmp::min(new_balance, season.energy_cap as u64) as u32;
+            defender.comeback_used = true;
+            emit!(ComebackBurst {
+                season_id,
+                player: defender.player,
+                energy_granted: season.comeback_energy,
+                hex_count: defender.hex_count,
+                peak_hex_count: defender.peak_hex_count,
+            });
+        }
+
         // Stats
         attacker.attacks_won = attacker.attacks_won
             .checked_add(1)
@@ -179,6 +214,19 @@ pub fn handler(
         attacker.points = attacker.points
             .checked_add(season.capture_bonus_points as u64)
             .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+        // Landmark capture bonus
+        if is_landmark {
+            attacker.points = attacker.points
+                .checked_add(season.landmark_capture_bonus_points as u64)
+                .ok_or(SolvasionError::ArithmeticOverflow)?;
+            emit!(LandmarkCaptureBonus {
+                season_id,
+                player: attacker.player,
+                hex_id,
+                bonus_points: season.landmark_capture_bonus_points,
+            });
+        }
 
         // Theatre capture bonus
         if in_theatre {
@@ -215,6 +263,11 @@ pub fn handler(
             .ok_or(SolvasionError::ArithmeticOverflow)?;
         defender.defences_made = defender.defences_made
             .checked_add(1)
+            .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+        // Defence win bonus points
+        defender.points = defender.points
+            .checked_add(season.defence_win_bonus_points as u64)
             .ok_or(SolvasionError::ArithmeticOverflow)?;
 
         // Theatre defence bonus

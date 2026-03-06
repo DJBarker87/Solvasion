@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Player } from '../types';
 import * as ledger from '../solana/defenceLedger';
 
@@ -7,6 +7,7 @@ interface GarrisonModalProps {
   seasonId: number;
   wallet: string;
   playerData: Player;
+  loading?: boolean;
   onCommit: (hexIds: string[], amounts: number[]) => void;
   onIncrease: (hexId: string, newTotal: number, delta: number) => void;
   onWithdraw: (hexId: string) => void;
@@ -14,7 +15,7 @@ interface GarrisonModalProps {
 }
 
 export default function GarrisonModal({
-  hexId, seasonId, wallet, playerData, onCommit, onIncrease, onWithdraw, onClose,
+  hexId, seasonId, wallet, playerData, loading, onCommit, onIncrease, onWithdraw, onClose,
 }: GarrisonModalProps) {
   const entry = ledger.getEntry(wallet, seasonId, hexId);
   const currentAmount = entry?.amount ?? 0;
@@ -40,14 +41,21 @@ export default function GarrisonModal({
     onClose();
   };
 
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60" role="dialog" aria-modal="true" aria-labelledby="garrison-title">
       <div className="bg-gray-900 border border-gray-700 rounded-lg p-5 w-80 shadow-2xl">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="text-white font-semibold text-sm">
+          <h3 id="garrison-title" className="text-white font-semibold text-sm">
             {hasGarrison ? 'Garrison' : 'Set Garrison'}
           </h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-white text-xs cursor-pointer">X</button>
+          <button onClick={onClose} aria-label="Close" className="text-gray-500 hover:text-white text-xs cursor-pointer">X</button>
         </div>
 
         {hasGarrison && (
@@ -91,21 +99,27 @@ export default function GarrisonModal({
               className="w-full"
             />
             <div className="text-center text-white text-sm mt-1">{Math.min(amount, maxEnergy)}</div>
+            {mode === 'increase' && (
+              <div className="text-xs text-gray-400 text-center mt-1">
+                New total: <span className="text-green-300">{currentAmount + Math.min(amount, maxEnergy)}</span>
+              </div>
+            )}
           </div>
         )}
 
         {mode === 'withdraw' && (
           <p className="text-xs text-red-300 mb-4">
             This will reveal your garrison amount and withdraw all {currentAmount} energy.
+            Your garrison is consumed and must be recommitted after combat.
           </p>
         )}
 
         <button
           onClick={handleSubmit}
-          disabled={mode !== 'withdraw' && maxEnergy <= 0}
+          disabled={loading || (mode !== 'withdraw' && maxEnergy <= 0)}
           className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm py-2 rounded cursor-pointer disabled:cursor-not-allowed"
         >
-          {mode === 'withdraw' ? 'Withdraw Garrison' : mode === 'increase' ? 'Increase Garrison' : 'Set Garrison'}
+          {loading ? 'Submitting...' : mode === 'withdraw' ? 'Withdraw Garrison' : mode === 'increase' ? 'Increase Garrison' : 'Set Garrison'}
         </button>
       </div>
     </div>

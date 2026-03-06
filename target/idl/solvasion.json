@@ -8,6 +8,108 @@
   },
   "instructions": [
     {
+      "name": "accept_pact",
+      "discriminator": [
+        193,
+        38,
+        114,
+        44,
+        225,
+        141,
+        10,
+        113
+      ],
+      "accounts": [
+        {
+          "name": "acceptor",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "acceptor"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pact",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "pact.player_a",
+                "account": "Pact"
+              },
+              {
+                "kind": "account",
+                "path": "pact.player_b",
+                "account": "Pact"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "append_adjacency_data",
       "discriminator": [
         27,
@@ -179,6 +281,160 @@
           "type": "bytes"
         }
       ]
+    },
+    {
+      "name": "batch_recommit_defence",
+      "discriminator": [
+        35,
+        146,
+        83,
+        48,
+        145,
+        4,
+        94,
+        114
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "entries",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "RecommitEntry"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "batch_recover_phantom",
+      "discriminator": [
+        216,
+        127,
+        180,
+        218,
+        206,
+        220,
+        16,
+        198
+      ],
+      "accounts": [
+        {
+          "name": "player_wallet",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "player_wallet"
+              }
+            ]
+          }
+        }
+      ],
+      "args": []
     },
     {
       "name": "claim_hex",
@@ -1872,6 +2128,154 @@
       ]
     },
     {
+      "name": "propose_pact",
+      "discriminator": [
+        107,
+        226,
+        60,
+        36,
+        128,
+        240,
+        140,
+        125
+      ],
+      "accounts": [
+        {
+          "name": "proposer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "season",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  115,
+                  101,
+                  97,
+                  115,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_proposer",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "proposer"
+              }
+            ]
+          }
+        },
+        {
+          "name": "player_target",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  108,
+                  97,
+                  121,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "account",
+                "path": "target"
+              }
+            ]
+          }
+        },
+        {
+          "name": "target"
+        },
+        {
+          "name": "pact",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "season.season_id",
+                "account": "Season"
+              },
+              {
+                "kind": "arg",
+                "path": "sorted_a"
+              },
+              {
+                "kind": "arg",
+                "path": "sorted_b"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "duration",
+          "type": "i64"
+        },
+        {
+          "name": "sorted_a",
+          "type": "pubkey"
+        },
+        {
+          "name": "sorted_b",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "recommit_defence",
       "discriminator": [
         126,
@@ -3170,6 +3574,19 @@
       ]
     },
     {
+      "name": "Pact",
+      "discriminator": [
+        34,
+        182,
+        77,
+        169,
+        228,
+        191,
+        31,
+        142
+      ]
+    },
+    {
       "name": "PhantomRecovery",
       "discriminator": [
         167,
@@ -3289,6 +3706,32 @@
       ]
     },
     {
+      "name": "BatchDefenceRecommitted",
+      "discriminator": [
+        36,
+        48,
+        38,
+        96,
+        14,
+        167,
+        44,
+        110
+      ]
+    },
+    {
+      "name": "BatchPhantomRecovered",
+      "discriminator": [
+        141,
+        180,
+        47,
+        66,
+        37,
+        16,
+        158,
+        25
+      ]
+    },
+    {
       "name": "ClutchDefence",
       "discriminator": [
         117,
@@ -3299,6 +3742,19 @@
         30,
         119,
         71
+      ]
+    },
+    {
+      "name": "ComebackBurst",
+      "discriminator": [
+        60,
+        42,
+        136,
+        164,
+        74,
+        166,
+        234,
+        48
       ]
     },
     {
@@ -3432,6 +3888,19 @@
       ]
     },
     {
+      "name": "LandmarkCaptureBonus",
+      "discriminator": [
+        90,
+        78,
+        46,
+        69,
+        203,
+        216,
+        231,
+        2
+      ]
+    },
+    {
       "name": "MapFinalized",
       "discriminator": [
         160,
@@ -3442,6 +3911,45 @@
         16,
         3,
         149
+      ]
+    },
+    {
+      "name": "PactAccepted",
+      "discriminator": [
+        47,
+        39,
+        201,
+        78,
+        253,
+        126,
+        72,
+        20
+      ]
+    },
+    {
+      "name": "PactBroken",
+      "discriminator": [
+        182,
+        102,
+        113,
+        37,
+        155,
+        54,
+        177,
+        247
+      ]
+    },
+    {
+      "name": "PactProposed",
+      "discriminator": [
+        164,
+        64,
+        110,
+        15,
+        199,
+        155,
+        149,
+        196
       ]
     },
     {
@@ -3857,23 +4365,38 @@
     },
     {
       "code": 6048,
+      "name": "TheatreTooEarly",
+      "msg": "Theatre rotations cannot start before the earliest start time"
+    },
+    {
+      "code": 6049,
       "name": "NotAuthorisedToReveal",
       "msg": "Caller is not authorised to reveal"
     },
     {
-      "code": 6049,
+      "code": 6050,
       "name": "CurveOpFailed",
       "msg": "Curve operation failed"
     },
     {
-      "code": 6050,
+      "code": 6051,
       "name": "ArithmeticOverflow",
       "msg": "Arithmetic overflow"
     },
     {
-      "code": 6051,
+      "code": 6052,
       "name": "Unauthorized",
       "msg": "Unauthorized"
+    },
+    {
+      "code": 6053,
+      "name": "PactAlreadyAccepted",
+      "msg": "Pact has already been accepted"
+    },
+    {
+      "code": 6054,
+      "name": "PactBroken",
+      "msg": "Pact has been broken"
     }
   ],
   "types": [
@@ -4104,6 +4627,54 @@
       }
     },
     {
+      "name": "BatchDefenceRecommitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          },
+          {
+            "name": "net_energy_delta",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "BatchPhantomRecovered",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "count",
+            "type": "u8"
+          },
+          {
+            "name": "total_energy_recovered",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
       "name": "ClutchDefence",
       "type": {
         "kind": "struct",
@@ -4126,6 +4697,34 @@
           },
           {
             "name": "bonus_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ComebackBurst",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "energy_granted",
+            "type": "u32"
+          },
+          {
+            "name": "hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "peak_hex_count",
             "type": "u32"
           }
         ]
@@ -4199,6 +4798,10 @@
           },
           {
             "name": "starting_energy",
+            "type": "u32"
+          },
+          {
+            "name": "late_join_bonus_energy",
             "type": "u32"
           },
           {
@@ -4282,6 +4885,14 @@
             "type": "u32"
           },
           {
+            "name": "landmark_capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "defence_win_bonus_points",
+            "type": "u32"
+          },
+          {
             "name": "attack_refund_bps",
             "type": "u16"
           },
@@ -4307,6 +4918,38 @@
           },
           {
             "name": "clutch_window_seconds",
+            "type": "i64"
+          },
+          {
+            "name": "theatre_earliest_start",
+            "type": "i64"
+          },
+          {
+            "name": "fortification_bonus_bps_per_day",
+            "type": "u16"
+          },
+          {
+            "name": "fortification_max_bps",
+            "type": "u16"
+          },
+          {
+            "name": "comeback_energy",
+            "type": "u32"
+          },
+          {
+            "name": "comeback_threshold",
+            "type": "u32"
+          },
+          {
+            "name": "comeback_min_peak",
+            "type": "u32"
+          },
+          {
+            "name": "pact_break_penalty_points",
+            "type": "u32"
+          },
+          {
+            "name": "pact_max_duration",
             "type": "i64"
           },
           {
@@ -4648,6 +5291,30 @@
       }
     },
     {
+      "name": "LandmarkCaptureBonus",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player",
+            "type": "pubkey"
+          },
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "bonus_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
       "name": "MapFinalized",
       "type": {
         "kind": "struct",
@@ -4663,6 +5330,114 @@
           {
             "name": "edge_count",
             "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pact",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "player_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          },
+          {
+            "name": "broken",
+            "type": "bool"
+          },
+          {
+            "name": "broken_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "accepted",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PactAccepted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "player_a",
+            "type": "pubkey"
+          },
+          {
+            "name": "player_b",
+            "type": "pubkey"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PactBroken",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "broken_by",
+            "type": "pubkey"
+          },
+          {
+            "name": "victim",
+            "type": "pubkey"
+          },
+          {
+            "name": "penalty_points",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PactProposed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "season_id",
+            "type": "u64"
+          },
+          {
+            "name": "proposer",
+            "type": "pubkey"
+          },
+          {
+            "name": "target",
+            "type": "pubkey"
+          },
+          {
+            "name": "expires_at",
+            "type": "i64"
           }
         ]
       }
@@ -4899,6 +5674,14 @@
           {
             "name": "has_guardian",
             "type": "bool"
+          },
+          {
+            "name": "peak_hex_count",
+            "type": "u32"
+          },
+          {
+            "name": "comeback_used",
+            "type": "bool"
           }
         ]
       }
@@ -4971,6 +5754,48 @@
           {
             "name": "expires_at",
             "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RecommitEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "hex_id",
+            "type": "u64"
+          },
+          {
+            "name": "old_energy",
+            "type": "u32"
+          },
+          {
+            "name": "old_blind",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "new_commitment",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "new_nonce",
+            "type": "u64"
+          },
+          {
+            "name": "new_delta",
+            "type": "u32"
           }
         ]
       }
@@ -5153,6 +5978,10 @@
             "type": "u32"
           },
           {
+            "name": "late_join_bonus_energy",
+            "type": "u32"
+          },
+          {
             "name": "claim_cost",
             "type": "u32"
           },
@@ -5263,6 +6092,14 @@
             "type": "u32"
           },
           {
+            "name": "landmark_capture_bonus_points",
+            "type": "u32"
+          },
+          {
+            "name": "defence_win_bonus_points",
+            "type": "u32"
+          },
+          {
             "name": "attack_refund_bps",
             "type": "u16"
           },
@@ -5321,6 +6158,38 @@
           {
             "name": "cleanup_complete",
             "type": "bool"
+          },
+          {
+            "name": "theatre_earliest_start",
+            "type": "i64"
+          },
+          {
+            "name": "fortification_bonus_bps_per_day",
+            "type": "u16"
+          },
+          {
+            "name": "fortification_max_bps",
+            "type": "u16"
+          },
+          {
+            "name": "comeback_energy",
+            "type": "u32"
+          },
+          {
+            "name": "comeback_threshold",
+            "type": "u32"
+          },
+          {
+            "name": "comeback_min_peak",
+            "type": "u32"
+          },
+          {
+            "name": "pact_break_penalty_points",
+            "type": "u32"
+          },
+          {
+            "name": "pact_max_duration",
+            "type": "i64"
           },
           {
             "name": "landmark_count",

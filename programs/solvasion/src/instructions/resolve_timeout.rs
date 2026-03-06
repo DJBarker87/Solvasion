@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use crate::state::{Season, Player, Hex, Attack, AttackResult, PhantomRecovery};
 use crate::errors::SolvasionError;
 use crate::helpers::recalculate_points;
-use crate::events::{AttackResolved, TheatreBonusAwarded, VictoryThresholdReached};
+use crate::events::{AttackResolved, TheatreBonusAwarded, VictoryThresholdReached, LandmarkCaptureBonus, ComebackBurst};
 
 #[derive(Accounts)]
 #[instruction(attack_id: u64)]
@@ -152,10 +152,52 @@ pub fn handler(
     hex.last_owner_change = now;
     hex.last_combat_resolved = now;
 
+    // Track peak hex count for attacker
+    if attacker.hex_count > attacker.peak_hex_count {
+        attacker.peak_hex_count = attacker.hex_count;
+    }
+
+    // Comeback burst check for defender
+    if defender.hex_count < season.comeback_threshold
+        && defender.peak_hex_count >= season.comeback_min_peak
+        && !defender.comeback_used
+    {
+        let new_balance = (defender.energy_balance as u64)
+            .checked_add(season.comeback_energy as u64)
+            .ok_or(SolvasionError::ArithmeticOverflow)?;
+        defender.energy_balance = std::cmp::min(new_balance, season.energy_cap as u64) as u32;
+        defender.comeback_used = true;
+        emit!(ComebackBurst {
+            season_id,
+            player: defender.player,
+            energy_granted: season.comeback_energy,
+            hex_count: defender.hex_count,
+            peak_hex_count: defender.peak_hex_count,
+        });
+    }
+
     // Stats
     attacker.attacks_won = attacker.attacks_won
         .checked_add(1)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+    // Capture bonus points (was missing — timeout captures should earn capture points)
+    attacker.points = attacker.points
+        .checked_add(season.capture_bonus_points as u64)
+        .ok_or(SolvasionError::ArithmeticOverflow)?;
+
+    // Landmark capture bonus
+    if is_landmark {
+        attacker.points = attacker.points
+            .checked_add(season.landmark_capture_bonus_points as u64)
+            .ok_or(SolvasionError::ArithmeticOverflow)?;
+        emit!(LandmarkCaptureBonus {
+            season_id,
+            player: attacker.player,
+            hex_id,
+            bonus_points: season.landmark_capture_bonus_points,
+        });
+    }
 
     // Theatre bonus for attacker
     let in_theatre = season.active_theatres.iter().any(|&r| r != 0 && r == hex.region_id)
