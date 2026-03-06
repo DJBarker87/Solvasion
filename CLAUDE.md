@@ -46,7 +46,7 @@ Key spec sections by topic:
 │ Event indexer → SQLite, REST API, WebSocket feed,   │
 │ crank (timeouts, cleanup), bot controller,          │
 │ Guardian auto-reveal service, Telegram notifications│
-│ Hosted on Self-hosted (Linux + KVM)      │
+│ Self-hosted (Linux + KVM)                           │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -340,7 +340,4 @@ The project builds in phases. Do not jump ahead.
 
 ## Infrastructure
 
-- **Self-hosted Linux:** Self-hosted Linux. Hosts backend, crank, Guardian, bot controller.
-- **Raspberry Pi 5:** Available for secondary tasks. [redacted]
-- **GitHub:** DJBarker87
-- **Domain:** Available via Cloudflare Tunnel if needed (pattern: [redacted])
+Infrastructure details are kept in `.claude/` (gitignored) to avoid exposing hostnames, usernames, and domain patterns in a public repo.

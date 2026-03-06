@@ -24,6 +24,8 @@ backend/db/*.sqlite-shm
 .DS_Store
 
 # Solana keypairs (never commit)
+*-keypair.json
+**/id.json
 *.json.bak
 test-ledger/
 
