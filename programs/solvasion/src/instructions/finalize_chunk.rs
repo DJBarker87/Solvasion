@@ -50,6 +50,13 @@ pub fn handler<'info>(ctx: Context<'_, '_, 'info, 'info, FinalizeChunk<'info>>) 
         // Verify player belongs to this season
         require!(player.season_id == season_id, SolvasionError::Unauthorized);
 
+        // Verify Player PDA derivation
+        let (expected_key, _) = Pubkey::find_program_address(
+            &[Player::SEED, season_id.to_le_bytes().as_ref(), player.player.as_ref()],
+            &crate::ID,
+        );
+        require!(account_info.key() == expected_key, SolvasionError::Unauthorized);
+
         // Recalculate points using actual_end as the timestamp (NOT current clock)
         recalculate_points_at(&mut player, season, actual_end)?;
 

@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player};
+use crate::state::{Season, Player, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::helpers::recalculate_points;
 use crate::events::SeasonEnded;
@@ -7,6 +7,13 @@ use crate::events::SeasonEnded;
 #[derive(Accounts)]
 pub struct ClaimVictory<'info> {
     pub any_signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [GlobalConfig::SEED],
+        bump,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
 
     #[account(
         mut,
@@ -47,7 +54,11 @@ pub fn handler(ctx: Context<ClaimVictory>) -> Result<()> {
     season.winner = player.player;
     season.winning_score = player.points;
     season.has_winner = true;
-    season.finalization_complete = true; // no crank needed — winner known
+
+    // Clear active season slot
+    if !season.is_skirmish {
+        ctx.accounts.global_config.active_season_id = 0;
+    }
 
     emit!(SeasonEnded {
         season_id: season.season_id,

@@ -110,10 +110,17 @@ pub struct Season {
     pub pact_break_penalty_points: u32,  // points deducted for breaking a pact (e.g. 500)
     pub pact_max_duration: i64,          // max pact duration in seconds (e.g. 48h = 172800)
 
+    // Rate divisor: seconds per rate unit. Default 3600 (rates are "per hour").
+    // Set to 60 for "per minute" rates in blitz seasons.
+    pub rate_divisor: u32,
+
     // Landmarks
     pub landmark_count: u8,
     #[max_len(32)]
     pub landmarks: Vec<u64>,
+
+    // Skirmish mode: short local conflict, not preserved, no reputation
+    pub is_skirmish: bool,
 }
 
 impl Season {

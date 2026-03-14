@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player, PhantomRecovery};
+use crate::state::{Season, Player, PhantomRecovery, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::helpers::recalculate_energy;
 use crate::events::PhantomEnergyRecovered;
@@ -7,8 +7,10 @@ use crate::events::PhantomEnergyRecovered;
 #[derive(Accounts)]
 #[instruction(hex_id: u64)]
 pub struct RecoverPhantomEnergy<'info> {
-    #[account(mut)]
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -39,6 +41,14 @@ pub struct RecoverPhantomEnergy<'info> {
         constraint = !phantom_recovery.recovered @ SolvasionError::RecoveryAlreadyClaimed,
     )]
     pub phantom_recovery: Account<'info, PhantomRecovery>,
+
+    /// CHECK: Treasury PDA receives rent from closed accounts
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
 }
 
 pub fn handler(ctx: Context<RecoverPhantomEnergy>, _hex_id: u64) -> Result<()> {
@@ -46,6 +56,15 @@ pub fn handler(ctx: Context<RecoverPhantomEnergy>, _hex_id: u64) -> Result<()> {
     let season = &ctx.accounts.season;
     let player = &mut ctx.accounts.player;
     let phantom = &mut ctx.accounts.phantom_recovery;
+
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
 
     // Require 24 hours since lost_at
     let recovery_time = phantom.lost_at
@@ -83,12 +102,12 @@ pub fn handler(ctx: Context<RecoverPhantomEnergy>, _hex_id: u64) -> Result<()> {
         energy_recovered: recovery_amount,
     });
 
-    // Close PhantomRecovery account: rent to player wallet
+    // Close PhantomRecovery account: rent to treasury
     let phantom_info = ctx.accounts.phantom_recovery.to_account_info();
-    let wallet_info = ctx.accounts.player_wallet.to_account_info();
+    let treasury_info = ctx.accounts.treasury.to_account_info();
     let lamports = phantom_info.lamports();
     **phantom_info.try_borrow_mut_lamports()? = 0;
-    **wallet_info.try_borrow_mut_lamports()? = wallet_info
+    **treasury_info.try_borrow_mut_lamports()? = treasury_info
         .lamports()
         .checked_add(lamports)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

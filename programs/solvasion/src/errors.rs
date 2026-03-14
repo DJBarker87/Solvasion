@@ -112,4 +112,28 @@ pub enum SolvasionError {
     PactAlreadyAccepted,
     #[msg("Pact has been broken")]
     PactBroken,
+    #[msg("Proposer cannot accept their own pact")]
+    ProposerCannotAccept,
+    #[msg("Reputation already updated for this season")]
+    ReputationAlreadyUpdated,
+    #[msg("Commitment is the identity point (zero)")]
+    IdentityPointCommitment,
+    #[msg("Hex data must be appended in sorted order")]
+    UnsortedData,
+    #[msg("Token account not owned by SPL Token program")]
+    InvalidTokenProgram,
+    #[msg("Energy amount must be between 1 and energy cap")]
+    EnergyAmountOutOfRange,
+    #[msg("Treasury has insufficient funds")]
+    TreasuryInsufficient,
+    #[msg("Season has reached maximum player count")]
+    MaxPlayersReached,
+    #[msg("Treasury balance too low for account creation")]
+    TreasuryBelowSafetyFloor,
+    #[msg("A season is already active — only one at a time")]
+    SeasonAlreadyActive,
+    #[msg("Session key has expired")]
+    SessionKeyExpired,
+    #[msg("Session key duration exceeds maximum")]
+    SessionKeyDurationExceeded,
 }

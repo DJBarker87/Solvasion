@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use crate::state::{Season, Player, Hex, Phase};
 use crate::errors::SolvasionError;
 use crate::helpers::{effective_phase, recalculate_energy};
-use crate::crypto::verify_commitment;
+use crate::crypto::{verify_commitment, reject_identity_commitment};
 use crate::events::BatchDefenceRecommitted;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -17,7 +17,10 @@ pub struct RecommitEntry {
 
 #[derive(Accounts)]
 pub struct BatchRecommitDefence<'info> {
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -36,7 +39,7 @@ pub struct BatchRecommitDefence<'info> {
         constraint = player.player == player_wallet.key(),
     )]
     pub player: Account<'info, Player>,
-    // Hex accounts passed via remaining_accounts (one per entry, same order)
+    // Hex accounts + optional session key PDA passed via remaining_accounts
 }
 
 pub fn handler<'info>(
@@ -48,6 +51,15 @@ pub fn handler<'info>(
     let player = &mut ctx.accounts.player;
     let season_id = season.season_id;
 
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season_id,
+        now,
+    )?;
+
     let phase = effective_phase(season, now);
     require!(phase != Phase::Ended, SolvasionError::SeasonEnded);
 
@@ -55,7 +67,9 @@ pub fn handler<'info>(
     recalculate_energy(player, season, now)?;
 
     let remaining = ctx.remaining_accounts;
-    require!(entries.len() == remaining.len(), SolvasionError::ArithmeticOverflow);
+    // remaining_accounts contains hex accounts (one per entry) plus an optional
+    // session key PDA at the end when using session key auth.
+    require!(remaining.len() >= entries.len(), SolvasionError::ArithmeticOverflow);
     require!(!entries.is_empty(), SolvasionError::ArithmeticOverflow);
 
     // Track net energy change: positive means player needs more energy, negative means refund
@@ -99,6 +113,9 @@ pub fn handler<'info>(
         // Verify old commitment via Pedersen
         verify_commitment(&hex.defence_commitment, entry.old_energy, &entry.old_blind)?;
 
+        // Reject identity point (zero) commitments
+        reject_identity_commitment(&entry.new_commitment)?;
+
         // Update hex with new commitment
         hex.defence_commitment = entry.new_commitment;
         hex.defence_nonce = entry.new_nonce;
@@ -121,10 +138,12 @@ pub fn handler<'info>(
         .checked_add(entries.len() as u64)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
 
+    // Verify accumulated totals fit in u32 before casting
+    require!(total_old_energy <= u32::MAX as u64, SolvasionError::ArithmeticOverflow);
+    require!(total_new_delta <= u32::MAX as u64, SolvasionError::ArithmeticOverflow);
+
     // Return old energy to balance
-    player.energy_committed = player.energy_committed
-        .checked_sub(total_old_energy as u32)
-        .ok_or(SolvasionError::ArithmeticOverflow)?;
+    player.energy_committed = player.energy_committed.saturating_sub(total_old_energy as u32);
     let new_balance = (player.energy_balance as u64)
         .checked_add(total_old_energy)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

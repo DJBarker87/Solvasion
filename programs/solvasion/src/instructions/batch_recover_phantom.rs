@@ -1,13 +1,15 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player, PhantomRecovery};
+use crate::state::{Season, Player, PhantomRecovery, GlobalConfig, SessionKey};
 use crate::errors::SolvasionError;
 use crate::helpers::recalculate_energy;
 use crate::events::BatchPhantomRecovered;
 
 #[derive(Accounts)]
 pub struct BatchRecoverPhantom<'info> {
-    #[account(mut)]
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -26,7 +28,15 @@ pub struct BatchRecoverPhantom<'info> {
         constraint = player.player == player_wallet.key(),
     )]
     pub player: Account<'info, Player>,
-    // PhantomRecovery accounts passed via remaining_accounts
+
+    /// CHECK: Treasury PDA receives rent from closed accounts
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
+    // PhantomRecovery accounts + optional session key PDA passed via remaining_accounts
 }
 
 pub fn handler<'info>(
@@ -38,16 +48,39 @@ pub fn handler<'info>(
     let season_id = season.season_id;
     let player_key = player.player;
 
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season_id,
+        now,
+    )?;
+
     // Recalculate energy once
     recalculate_energy(player, season, now)?;
 
     let remaining = ctx.remaining_accounts;
     require!(!remaining.is_empty(), SolvasionError::ArithmeticOverflow);
 
+    // Compute session key PDA to skip it when iterating remaining_accounts
+    let (session_key_pda, _) = Pubkey::find_program_address(
+        &[
+            SessionKey::SEED,
+            season_id.to_le_bytes().as_ref(),
+            player_key.as_ref(),
+        ],
+        ctx.program_id,
+    );
+
     let mut total_recovered: u32 = 0;
     let mut count: u8 = 0;
 
     for account_info in remaining.iter() {
+        // Skip session key PDA (used for session key auth verification)
+        if account_info.key() == session_key_pda {
+            continue;
+        }
         // Deserialize PhantomRecovery
         let data = account_info.try_borrow_mut_data()?;
         // Skip 8-byte discriminator
@@ -97,13 +130,13 @@ pub fn handler<'info>(
             .checked_add(1)
             .ok_or(SolvasionError::ArithmeticOverflow)?;
 
-        // Close account: zero data, transfer lamports to player wallet
+        // Close account: zero data, transfer lamports to treasury
         // First mark recovered (write back)
         drop(data);
         let lamports = account_info.lamports();
         **account_info.try_borrow_mut_lamports()? = 0;
-        let wallet_info = ctx.accounts.player_wallet.to_account_info();
-        **wallet_info.try_borrow_mut_lamports()? = wallet_info
+        let treasury_info = ctx.accounts.treasury.to_account_info();
+        **treasury_info.try_borrow_mut_lamports()? = treasury_info
             .lamports()
             .checked_add(lamports)
             .ok_or(SolvasionError::ArithmeticOverflow)?;

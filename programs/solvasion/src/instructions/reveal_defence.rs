@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player, Hex, Attack, AttackResult};
+use crate::state::{Season, Player, Hex, Attack, AttackResult, GlobalConfig};
 use crate::errors::SolvasionError;
-use crate::helpers::recalculate_points;
+use crate::helpers::{recalculate_points, recalculate_energy};
 use crate::crypto::verify_commitment;
 use crate::events::{
     AttackResolved, GuardianRevealSubmitted, TheatreBonusAwarded,
@@ -65,12 +65,13 @@ pub struct RevealDefence<'info> {
     )]
     pub attack: Account<'info, Attack>,
 
-    /// CHECK: Receives rent from closed attack account. Must match attack.attacker.
+    /// CHECK: Treasury PDA receives rent from closed attack account
     #[account(
         mut,
-        constraint = attacker_rent_recipient.key() == attack.attacker @ SolvasionError::InvalidRecipient,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
     )]
-    pub attacker_rent_recipient: UncheckedAccount<'info>,
+    pub treasury: SystemAccount<'info>,
 }
 
 pub fn handler(
@@ -86,6 +87,10 @@ pub fn handler(
     let hex = &mut ctx.accounts.hex;
     let attack = &mut ctx.accounts.attack;
     let caller = &ctx.accounts.caller;
+
+    // FIX L-5: Recalculate energy for both players before combat resolution
+    recalculate_energy(defender, season, now)?;
+    recalculate_energy(attacker, season, now)?;
 
     // Step 1: Caller verification — owner or registered guardian
     let guardian_reveal;
@@ -127,7 +132,8 @@ pub fn handler(
         && now < season.theatre_expires_at;
 
     // Calculate fortification bonus
-    let days_held = ((now - hex.last_owner_change) / 86400) as u16;
+    // FIX M-8: Use saturating_sub and max(0) for safe days_held calculation
+    let days_held = (now.saturating_sub(hex.last_owner_change).max(0) / 86400) as u16;
     let fortification_bps = std::cmp::min(
         days_held.saturating_mul(season.fortification_bonus_bps_per_day),
         season.fortification_max_bps,
@@ -411,12 +417,12 @@ pub fn handler(
         guardian_reveal,
     });
 
-    // Step 11: Close Attack account (rent to attacker)
+    // Step 11: Close Attack account (rent to treasury)
     let attack_account_info = ctx.accounts.attack.to_account_info();
-    let rent_recipient = ctx.accounts.attacker_rent_recipient.to_account_info();
+    let treasury_info = ctx.accounts.treasury.to_account_info();
     let lamports = attack_account_info.lamports();
     **attack_account_info.try_borrow_mut_lamports()? = 0;
-    **rent_recipient.try_borrow_mut_lamports()? = rent_recipient
+    **treasury_info.try_borrow_mut_lamports()? = treasury_info
         .lamports()
         .checked_add(lamports)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

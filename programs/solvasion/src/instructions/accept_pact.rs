@@ -5,7 +5,10 @@ use crate::events::PactAccepted;
 
 #[derive(Accounts)]
 pub struct AcceptPact<'info> {
-    pub acceptor: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Acceptor wallet for PDA derivation. Verified by authority check in handler.
+    pub acceptor: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -40,14 +43,27 @@ pub struct AcceptPact<'info> {
 
 pub fn handler(ctx: Context<AcceptPact>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
+    let season = &ctx.accounts.season;
     let pact = &mut ctx.accounts.pact;
     let acceptor = ctx.accounts.acceptor.key();
+
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        &ctx.accounts.player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
 
     // Verify the acceptor is the other party (not the proposer)
     require!(
         acceptor == pact.player_a || acceptor == pact.player_b,
         SolvasionError::Unauthorized
     );
+
+    // Proposer cannot accept their own pact
+    require!(acceptor != pact.proposed_by, SolvasionError::ProposerCannotAccept);
 
     // Verify not expired
     require!(now < pact.expires_at, SolvasionError::DeadlinePassed);

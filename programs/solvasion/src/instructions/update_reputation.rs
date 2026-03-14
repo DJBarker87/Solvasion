@@ -40,12 +40,21 @@ pub fn handler(ctx: Context<UpdateReputation>) -> Result<()> {
     let player = &ctx.accounts.player;
     let reputation = &mut ctx.accounts.reputation;
 
+    // Skirmishes do not affect reputation
+    require!(!season.is_skirmish, SolvasionError::Unauthorized);
+
     // Season must be ended and finalization complete
     require!(season.has_actual_end, SolvasionError::SeasonNotEnded);
     require!(season.finalization_complete, SolvasionError::FinalizationIncomplete);
 
     // Player must be finalized
     require!(player.finalized, SolvasionError::PlayerNotFinalized);
+
+    // Idempotency guard: prevent double-counting reputation for same season
+    require!(
+        reputation.last_season_updated < season.season_id,
+        SolvasionError::ReputationAlreadyUpdated
+    );
 
     // Set player pubkey (for init_if_needed case)
     reputation.player = player.player;
@@ -85,6 +94,9 @@ pub fn handler(ctx: Context<UpdateReputation>) -> Result<()> {
     if player.points > reputation.best_season_score {
         reputation.best_season_score = player.points;
     }
+
+    // Record which season was last updated
+    reputation.last_season_updated = season.season_id;
 
     Ok(())
 }

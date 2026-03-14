@@ -396,6 +396,7 @@ export async function createTestSeason(
       comebackMinPeak: 10,
       pactBreakPenaltyPoints: 500,
       pactMaxDuration: new BN(48 * 3600),
+      rateDivisor: 3600,
       landmarks: [TEST_LANDMARK],
     })
     .accounts({

@@ -9,6 +9,81 @@ const TG_API = `https://api.telegram.org/bot${config.tgBotToken}`;
 let pollingTimer: ReturnType<typeof setTimeout> | null = null;
 let lastUpdateId = 0;
 
+// Skirmish seasons suppress Telegram notifications (too spammy for 20-min games)
+let activeSeasonIsSkirmish = false;
+export function setSkirmishMode(isSkirmish: boolean): void {
+  activeSeasonIsSkirmish = isSkirmish;
+}
+
+// Rate limit: track last bind attempt per chat_id (in-memory, resets on restart)
+const bindRateLimit = new Map<string, number>();
+
+// Pending verifications: wallet → { code, chatId, expiresAt }
+const pendingVerifications = new Map<string, { code: string; chatId: number; expiresAt: number }>();
+
+function generateVerificationCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous chars (0/O, 1/I)
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+/**
+ * Verify a pending Telegram binding. Called by the API route after wallet
+ * signature verification. Returns true if the code matches and the binding
+ * is activated; false otherwise.
+ */
+export function verifyTelegramBinding(wallet: string, code: string, chatId: number): boolean {
+  const pending = pendingVerifications.get(wallet);
+  if (!pending) return false;
+
+  const now = Math.floor(Date.now() / 1000);
+  if (now > pending.expiresAt) {
+    pendingVerifications.delete(wallet);
+    return false;
+  }
+
+  if (pending.code !== code.toUpperCase() || pending.chatId !== chatId) {
+    return false;
+  }
+
+  // Verification passed — activate the subscription in the DB
+  pendingVerifications.delete(wallet);
+
+  const db = getDb();
+  const stmts = preparedStatements(db);
+  stmts.upsertTelegramSub.run({
+    wallet,
+    chat_id: String(chatId),
+    enabled: 1,
+    created_at: now,
+  });
+
+  // Notify the user via Telegram
+  sendMessage(String(chatId),
+    `Wallet ${wallet.slice(0, 8)}... verified and linked.\n\nYou will now receive attack alerts and notifications.\nSend /stop to unsubscribe.`
+  ).catch(() => {});
+
+  logger.info(`Telegram subscription verified: ${wallet.slice(0, 8)}... → chat ${chatId}`);
+  return true;
+}
+
+/**
+ * Look up the pending verification chatId for a wallet (used by the API route).
+ */
+export function getPendingVerification(wallet: string): { code: string; chatId: number; expiresAt: number } | null {
+  const pending = pendingVerifications.get(wallet);
+  if (!pending) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (now > pending.expiresAt) {
+    pendingVerifications.delete(wallet);
+    return null;
+  }
+  return pending;
+}
+
 // ---- Send message ----
 
 async function sendMessage(chatId: string, text: string): Promise<boolean> {
@@ -38,6 +113,7 @@ export async function notifyAttack(params: {
   attackerEnergy: number;
   deadline: number;
 }): Promise<void> {
+  if (activeSeasonIsSkirmish) return; // No notifications during skirmishes
   const sub = getSubscription(params.defenderWallet);
   if (!sub) return;
 
@@ -49,7 +125,6 @@ export async function notifyAttack(params: {
   await sendMessage(sub.chat_id, templates.attackAlert({
     hexName: params.hexName,
     attackerWallet: params.attackerWallet,
-    attackerEnergy: params.attackerEnergy,
     deadlineUtc,
     timeRemaining,
   }));
@@ -65,6 +140,7 @@ export async function notifyGuardianFailure(params: {
   hexName: string;
   error: string;
 }): Promise<void> {
+  if (activeSeasonIsSkirmish) return;
   const sub = getSubscription(params.playerWallet);
   if (!sub) return;
 
@@ -80,6 +156,7 @@ export async function notifyAttackResolved(params: {
   hexName: string;
   outcome: string;
 }): Promise<void> {
+  if (activeSeasonIsSkirmish) return;
   // Notify both parties
   for (const wallet of [params.attackerWallet, params.defenderWallet]) {
     const sub = getSubscription(wallet);
@@ -101,6 +178,7 @@ export async function notifyIncursion(params: {
   hoursUntil: number;
   affectedWallets: string[];
 }): Promise<void> {
+  if (activeSeasonIsSkirmish) return;
   const msg = templates.incursionWarning({
     factionName: params.factionName,
     regionName: params.regionName,
@@ -178,18 +256,31 @@ async function pollUpdates(): Promise<void> {
       if (text.startsWith("/start ")) {
         const wallet = text.slice(7).trim();
         if (wallet.length >= 32 && wallet.length <= 44) {
-          const db = getDb();
-          const stmts = preparedStatements(db);
-          stmts.upsertTelegramSub.run({
-            wallet,
-            chat_id: chatId,
-            enabled: 1,
-            created_at: Math.floor(Date.now() / 1000),
+          // Rate limit: max 1 bind attempt per chat_id per hour
+          const now = Math.floor(Date.now() / 1000);
+          const lastAttempt = bindRateLimit.get(chatId);
+          if (lastAttempt && now - lastAttempt < 3600) {
+            await sendMessage(chatId,
+              "You can only bind a wallet once per hour. Please wait before trying again."
+            );
+            continue;
+          }
+          bindRateLimit.set(chatId, now);
+
+          // Generate verification code and store as pending (10-minute expiry)
+          const code = generateVerificationCode();
+          pendingVerifications.set(wallet, {
+            code,
+            chatId: Number(chatId),
+            expiresAt: now + 600, // 10 minutes
           });
+
           await sendMessage(chatId,
-            `Subscribed! You'll receive attack alerts for wallet ${wallet.slice(0, 8)}...\n\nSend /stop to unsubscribe.`
+            `Verification code: <b>${code}</b>\n\n` +
+            `Please verify in the game UI to link wallet ${wallet.slice(0, 8)}...\n` +
+            `This code expires in 10 minutes.`
           );
-          logger.info(`Telegram subscription added: ${wallet.slice(0, 8)}... → chat ${chatId}`);
+          logger.info(`Telegram verification pending: ${wallet.slice(0, 8)}... → chat ${chatId}, code ${code}`);
         } else {
           await sendMessage(chatId, "Please send /start <your_wallet_address>");
         }

@@ -6,9 +6,12 @@ import { getConnection, idl } from "../solana.js";
 import { getDb, preparedStatements } from "../db.js";
 import { submitRevealDefence } from "../utils/reveal.js";
 import { logger } from "../utils/logger.js";
-import { BOT_NAMES, deriveBotKeypair, ensureBotFunded, type BotName } from "./wallet.js";
+import { BOT_NAMES, deriveBotKeypair, deriveBotBlind, ensureBotFunded, type BotName } from "./wallet.js";
+import { BOT_PERSONALITIES, pickTaunt } from "./config.js";
 import { botTick } from "./strategy.js";
 import { startIncursionScheduler, stopIncursionScheduler } from "./incursions.js";
+
+const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 interface BotInstance {
   name: BotName;
@@ -74,6 +77,9 @@ export async function startBots(): Promise<boolean> {
 
   const seasonId = activeSeason.season_id;
 
+  // Announce faction goals at startup
+  announceFactions(seasonId, stmts);
+
   // Start staggered tick timers (every 30s, 10s apart)
   bots.forEach((bot, i) => {
     const initialDelay = i * 10_000;
@@ -100,8 +106,41 @@ function runBotTick(bot: BotInstance, seasonId: number) {
 }
 
 /**
+ * Announce each faction's goal in the war feed at season start.
+ */
+function announceFactions(seasonId: number, stmts: ReturnType<typeof preparedStatements>) {
+  const now = Math.floor(Date.now() / 1000);
+
+  for (const bot of bots) {
+    const personality = BOT_PERSONALITIES[bot.name];
+
+    // Lore announcement
+    stmts.insertWarFeed.run({
+      season_id: seasonId,
+      event_type: "BotAnnouncement",
+      message: `${personality.displayName} enters the fray: "${personality.lore}"`,
+      hex_id: null,
+      involved_players: JSON.stringify([]),
+      created_at: now,
+    });
+
+    // Goal announcement
+    stmts.insertWarFeed.run({
+      season_id: seasonId,
+      event_type: "BotGoal",
+      message: `${personality.displayName}: ${personality.goalAnnouncement}`,
+      hex_id: null,
+      involved_players: JSON.stringify([]),
+      created_at: now + 1, // ensure ordering
+    });
+  }
+
+  logger.info("Faction goals announced in war feed");
+}
+
+/**
  * Called when an AttackLaunched event is indexed.
- * If the defender is a bot, auto-reveal using the bot's own keypair.
+ * If the defender is a bot, auto-reveal with a randomised delay (10-90s).
  */
 export async function onAttackLaunched(data: AttackData): Promise<void> {
   if (!enabled) return;
@@ -112,8 +151,22 @@ export async function onAttackLaunched(data: AttackData): Promise<void> {
   const bot = bots.find((b) => b.keypair.publicKey.toBase58() === defender);
   if (!bot) return;
 
-  logger.info(`Bot ${bot.name} is under attack on hex ${targetHex} — auto-revealing`);
+  // Randomised delay: 10-90 seconds to simulate human reaction time
+  const revealDelay = 10_000 + Math.floor(Math.random() * 80_000);
+  logger.info(`Bot ${bot.name} is under attack on hex ${targetHex} — revealing in ${Math.round(revealDelay / 1000)}s`);
 
+  setTimeout(async () => {
+    await executeReveal(bot, seasonId, attackId, attacker, targetHex);
+  }, revealDelay);
+}
+
+async function executeReveal(
+  bot: BotInstance,
+  seasonId: number,
+  attackId: number,
+  attacker: string,
+  targetHex: string,
+): Promise<void> {
   // Look up stored secret
   const db = getDb();
   const stmts = preparedStatements(db);
@@ -124,7 +177,9 @@ export async function onAttackLaunched(data: AttackData): Promise<void> {
     return;
   }
 
-  const blindBytes = Buffer.from(secret.blind_hex, "hex");
+  // Re-derive the blinding factor deterministically — never stored in DB
+  const botSeed = config.botSeed;
+  const blindBytes = deriveBotBlind(botSeed, bot.name, targetHex, secret.nonce);
 
   try {
     await submitRevealDefence(
@@ -133,15 +188,26 @@ export async function onAttackLaunched(data: AttackData): Promise<void> {
       attackId,
       targetHex,
       attacker,
-      defender,
+      bot.keypair.publicKey.toBase58(),
       secret.energy_amount,
       blindBytes
     );
 
-    logger.info(`Bot ${bot.name} auto-revealed defence for hex ${targetHex}`);
+    logger.info(`Bot ${bot.name} revealed defence for hex ${targetHex}`);
 
     // Delete the consumed secret (commitment consumed on any reveal)
     stmts.deleteBotHexSecret.run(seasonId, bot.name, targetHex);
+
+    // Emit a taunt into the war feed
+    const taunt = pickTaunt(bot.name, "onDefend");
+    stmts.insertWarFeed.run({
+      season_id: seasonId,
+      event_type: "BotTaunt",
+      message: `${BOT_PERSONALITIES[bot.name].displayName}: "${taunt}"`,
+      hex_id: targetHex,
+      involved_players: JSON.stringify([attacker]),
+      created_at: Math.floor(Date.now() / 1000),
+    });
   } catch (err: any) {
     const msg = String(err);
     if (!msg.includes("AttackAlreadyResolved")) {

@@ -1,11 +1,18 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, SeasonCounters};
+use crate::state::{Season, SeasonCounters, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::events::SeasonEnded;
 
 #[derive(Accounts)]
 pub struct EndSeason<'info> {
     pub any_signer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [GlobalConfig::SEED],
+        bump,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
 
     #[account(
         mut,
@@ -34,6 +41,11 @@ pub fn handler(ctx: Context<EndSeason>) -> Result<()> {
     season.actual_end = now;
     season.has_actual_end = true;
     season.finalization_complete = false;
+
+    // Clear active season slot (allows a new season to be created)
+    if !season.is_skirmish {
+        ctx.accounts.global_config.active_season_id = 0;
+    }
 
     emit!(SeasonEnded {
         season_id: season.season_id,

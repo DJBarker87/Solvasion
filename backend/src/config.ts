@@ -41,7 +41,7 @@ export const config = {
   guardianMasterKey: process.env.GUARDIAN_MASTER_KEY ?? "",
 
   // CORS
-  corsOrigin: process.env.CORS_ORIGIN ?? "*",
+  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
 
   // Bots
   botSeed: process.env.BOT_SEED ?? "",

@@ -10,6 +10,7 @@ pub struct Pact {
     pub broken: bool,
     pub broken_by: Pubkey,
     pub accepted: bool,
+    pub proposed_by: Pubkey,
 }
 
 impl Pact {

@@ -99,6 +99,7 @@ describe("01 — Admin + Season Setup", () => {
         retaliationWindowSeconds: new BN(12 * 3600),
         clutchDefenceBonusPoints: 50,
         clutchWindowSeconds: new BN(300),
+        rateDivisor: 3600,
         landmarks: [TEST_LANDMARK],
       })
       .accounts({
@@ -176,6 +177,7 @@ describe("01 — Admin + Season Setup", () => {
           retaliationWindowSeconds: new BN(12 * 3600),
           clutchDefenceBonusPoints: 50,
           clutchWindowSeconds: new BN(300),
+          rateDivisor: 3600,
           landmarks: [TEST_LANDMARK],
         })
         .accounts({

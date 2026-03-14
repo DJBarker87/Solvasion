@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useConnection, useWallet, useAnchorWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 import { getProgram } from '../solana/program';
@@ -27,13 +27,39 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
 
   const clearTx = useCallback(() => setTx(null), []);
 
-  // Get next nonce from player's defence ledger
-  const getNextNonce = useCallback((seasonId: number): number => {
+  const program = useMemo(() => {
+    if (!wallet) return null;
+    return getProgram(wallet, connection);
+  }, [wallet, connection]);
+
+  // Cache for on-chain nonce to avoid redundant RPC fetches
+  const onChainNonceCache = useRef<{ seasonId: number; nonce: number; fetchedAt: number } | null>(null);
+
+  // Get next nonce from max(on-chain commitment_nonce, local ledger max nonce) + 1.
+  // Falls back to local-only if on-chain fetch fails.
+  const getNextNonce = useCallback(async (seasonId: number): Promise<number> => {
     if (!publicKey) return 1;
+
     const entries = ledger.getAll(publicKey.toBase58(), seasonId);
-    const maxNonce = entries.reduce((max, e) => Math.max(max, e.nonce), 0);
-    return maxNonce + 1;
-  }, [publicKey]);
+    const localMaxNonce = entries.reduce((max, e) => Math.max(max, e.nonce), 0);
+
+    // Fetch on-chain nonce (cached for 30s to reduce RPC calls)
+    let onChainNonce = 0;
+    const cache = onChainNonceCache.current;
+    const now = Date.now();
+    if (cache && cache.seasonId === seasonId && now - cache.fetchedAt < 30_000) {
+      onChainNonce = cache.nonce;
+    } else if (program) {
+      try {
+        onChainNonce = await actions.fetchOnChainNonce(program, seasonId, publicKey);
+        onChainNonceCache.current = { seasonId, nonce: onChainNonce, fetchedAt: now };
+      } catch {
+        // On-chain fetch failed — use local nonce only
+      }
+    }
+
+    return Math.max(onChainNonce, localMaxNonce) + 1;
+  }, [publicKey, program]);
 
   const wrap = useCallback(async (label: string, fn: () => Promise<string>) => {
     if (!wallet || !publicKey) {
@@ -51,11 +77,6 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     }
   }, [wallet, publicKey, onSuccess]);
 
-  const program = useMemo(() => {
-    if (!wallet) return null;
-    return getProgram(wallet, connection);
-  }, [wallet, connection]);
-
   return {
     tx,
     clearTx,
@@ -66,7 +87,7 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     }, [wrap, program, publicKey]),
 
     claimHex: useCallback(async (seasonId: number, hexId: string, adjacentHexId: string | null) => {
-      const nonce = getNextNonce(seasonId);
+      const nonce = await getNextNonce(seasonId);
       await wrap('Claiming hex...', async () => {
         const sig = await actions.claimHex(program!, seasonId, publicKey!, hexId, adjacentHexId, nonce);
         // Fire-and-forget Guardian upload
@@ -82,7 +103,7 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     }, [wrap, program, publicKey, getNextNonce, guardian]),
 
     commitDefence: useCallback(async (seasonId: number, hexIds: string[], amounts: number[]) => {
-      const nonce = getNextNonce(seasonId);
+      const nonce = await getNextNonce(seasonId);
       await wrap('Setting garrison...', async () => {
         const sig = await actions.commitDefence(program!, seasonId, publicKey!, hexIds, amounts, nonce);
         if (guardian?.enabled) {
@@ -99,7 +120,7 @@ export function useGameActions(onSuccess?: () => void, guardian?: UseGuardianRes
     }, [wrap, program, publicKey, getNextNonce, guardian]),
 
     increaseDefence: useCallback(async (seasonId: number, hexId: string, newTotal: number, delta: number) => {
-      const nonce = getNextNonce(seasonId);
+      const nonce = await getNextNonce(seasonId);
       await wrap('Increasing garrison...', async () => {
         const sig = await actions.increaseDefence(program!, seasonId, publicKey!, hexId, newTotal, delta, nonce);
         if (guardian?.enabled) {

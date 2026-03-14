@@ -42,6 +42,15 @@ use instructions::batch_recover_phantom::*;
 use instructions::batch_recommit_defence::*;
 use instructions::propose_pact::*;
 use instructions::accept_pact::*;
+use instructions::fund_treasury::*;
+use instructions::withdraw_treasury::*;
+use instructions::transfer_admin::*;
+use instructions::set_paused::*;
+use instructions::close_pact::*;
+use instructions::set_treasury_config::*;
+use instructions::close_season::*;
+use instructions::create_session_key::*;
+use instructions::revoke_session_key::*;
 
 declare_id!("98VnxqEX7SBwLGJVAVeLSfQPEUDGwBEpQWwugvjPeAfM");
 
@@ -266,5 +275,49 @@ pub mod solvasion {
 
     pub fn accept_pact(ctx: Context<AcceptPact>) -> Result<()> {
         instructions::accept_pact::handler(ctx)
+    }
+
+    pub fn fund_treasury(ctx: Context<FundTreasury>, amount: u64) -> Result<()> {
+        instructions::fund_treasury::handler(ctx, amount)
+    }
+
+    pub fn withdraw_treasury(ctx: Context<WithdrawTreasury>, amount: u64) -> Result<()> {
+        instructions::withdraw_treasury::handler(ctx, amount)
+    }
+
+    pub fn transfer_admin(ctx: Context<TransferAdmin>, new_admin: Pubkey) -> Result<()> {
+        instructions::transfer_admin::handler(ctx, new_admin)
+    }
+
+    pub fn set_paused(ctx: Context<SetPaused>, paused: bool) -> Result<()> {
+        instructions::set_paused::handler(ctx, paused)
+    }
+
+    pub fn close_pact(ctx: Context<ClosePact>) -> Result<()> {
+        instructions::close_pact::handler(ctx)
+    }
+
+    pub fn set_treasury_config(
+        ctx: Context<SetTreasuryConfig>,
+        treasury_min_balance: u64,
+        max_players_per_season: u32,
+    ) -> Result<()> {
+        instructions::set_treasury_config::handler(ctx, treasury_min_balance, max_players_per_season)
+    }
+
+    pub fn close_season(ctx: Context<CloseSeason>) -> Result<()> {
+        instructions::close_season::handler(ctx)
+    }
+
+    pub fn create_session_key(
+        ctx: Context<CreateSessionKey>,
+        session_pubkey: Pubkey,
+        duration: i64,
+    ) -> Result<()> {
+        instructions::create_session_key::handler(ctx, session_pubkey, duration)
+    }
+
+    pub fn revoke_session_key(ctx: Context<RevokeSessionKey>) -> Result<()> {
+        instructions::revoke_session_key::handler(ctx)
     }
 }

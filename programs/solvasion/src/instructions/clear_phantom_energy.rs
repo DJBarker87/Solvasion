@@ -4,7 +4,7 @@ use crate::errors::SolvasionError;
 
 #[derive(Accounts)]
 pub struct ClearPhantomEnergy<'info> {
-    pub any_signer: Signer<'info>,
+    pub player_wallet: Signer<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -17,9 +17,10 @@ pub struct ClearPhantomEnergy<'info> {
         seeds = [
             Player::SEED,
             season.season_id.to_le_bytes().as_ref(),
-            player.player.as_ref(),
+            player_wallet.key().as_ref(),
         ],
         bump,
+        constraint = player.player == player_wallet.key(),
     )]
     pub player: Account<'info, Player>,
 }

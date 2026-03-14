@@ -9,7 +9,13 @@
 import crypto from "node:crypto";
 import { Keypair, Connection } from "@solana/web3.js";
 
-const BOT_NAMES = ["Centurion", "Vanguard", "Sentinel"] as const;
+const BOT_NAMES = [
+  "RomanLegion",
+  "NorseRaiders",
+  "OttomanEmpire",
+  "HanseaticLeague",
+  "AlpineConfederacy",
+] as const;
 const RPC_URL = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 
 function deriveBotKeypair(botSeed: string, botName: string): Keypair {
@@ -47,7 +53,7 @@ async function main() {
       // offline
     }
     const sol = (balance / 1e9).toFixed(4);
-    console.log(`  ${name.padEnd(12)} ${kp.publicKey.toBase58()}  (${sol} SOL)`);
+    console.log(`  ${name.padEnd(20)} ${kp.publicKey.toBase58()}  (${sol} SOL)`);
   }
 
   console.log("\n─".repeat(60));

@@ -11,6 +11,7 @@ interface IncursionPlan {
   scheduledAt: number; // unix timestamp of attack execution
   announced: boolean;
   executed: boolean;
+  windowEnd: number;   // execution window end (scheduledAt + 2 hours)
 }
 
 let pendingIncursions: IncursionPlan[] = [];
@@ -19,7 +20,7 @@ let incursionTimer: ReturnType<typeof setInterval> | null = null;
 const MIN_DAYS_BETWEEN = 3;
 const MAX_DAYS_BETWEEN = 5;
 const ADVANCE_WARNING_HOURS = 6;
-const ATTACKS_PER_INCURSION = 4; // 3-5 attacks
+const EXECUTION_WINDOW_SECONDS = 2 * 3600; // 2-hour attack window
 
 let lastIncursionTime = 0;
 let nextIncursionTime = 0;
@@ -75,7 +76,7 @@ async function checkIncursions(seasonId: number) {
     // Execute at scheduled time
     if (now >= plan.scheduledAt) {
       plan.executed = true;
-      // Execution is handled by the main bot tick — we just mark targets
+      plan.windowEnd = now + EXECUTION_WINDOW_SECONDS;
       emitIncursionAttackFeed(seasonId, plan, stmts);
     }
   }
@@ -107,6 +108,7 @@ function planIncursion(seasonId: number, stmts: ReturnType<typeof preparedStatem
     scheduledAt,
     announced: false,
     executed: false,
+    windowEnd: 0,
   };
 
   pendingIncursions.push(plan);
@@ -116,7 +118,7 @@ function planIncursion(seasonId: number, stmts: ReturnType<typeof preparedStatem
   nextIncursionTime = scheduledAt + daysBetween * 86400;
   lastIncursionTime = scheduledAt;
 
-  logger.info(`Planned incursion: ${botName} → ${targetRegion.name} at ${new Date(scheduledAt * 1000).toISOString()}`);
+  logger.info(`Planned incursion: ${personality.displayName} → ${targetRegion.name} at ${new Date(scheduledAt * 1000).toISOString()}`);
 }
 
 function announceIncursion(
@@ -124,16 +126,28 @@ function announceIncursion(
   plan: IncursionPlan,
   stmts: ReturnType<typeof preparedStatements>,
 ) {
-  const displayName = BOT_PERSONALITIES[plan.botName].displayName;
+  const personality = BOT_PERSONALITIES[plan.botName];
+  const displayName = personality.displayName;
 
-  // War feed announcement
+  // War feed announcement with faction flavour
   stmts.insertWarFeed.run({
     season_id: seasonId,
     event_type: "BotIncursion",
-    message: `${displayName} is preparing an assault on ${plan.regionName}! Attacks in ${ADVANCE_WARNING_HOURS} hours.`,
+    message: `${displayName} is marshalling forces for an assault on ${plan.regionName}! Attack expected in ${ADVANCE_WARNING_HOURS} hours.`,
     hex_id: null,
     involved_players: JSON.stringify([]),
     created_at: Math.floor(Date.now() / 1000),
+  });
+
+  // Faction-specific incursion taunt
+  const taunt = pickTaunt(plan.botName, "onIncursion");
+  stmts.insertWarFeed.run({
+    season_id: seasonId,
+    event_type: "BotTaunt",
+    message: `${displayName}: "${taunt}"`,
+    hex_id: null,
+    involved_players: JSON.stringify([]),
+    created_at: Math.floor(Date.now() / 1000) + 1,
   });
 
   // Telegram alerts to players with territory in the region
@@ -162,31 +176,32 @@ function emitIncursionAttackFeed(
   plan: IncursionPlan,
   stmts: ReturnType<typeof preparedStatements>,
 ) {
-  const displayName = BOT_PERSONALITIES[plan.botName].displayName;
-  const taunt = pickTaunt(plan.botName, "onAttack");
+  const personality = BOT_PERSONALITIES[plan.botName];
+  const displayName = personality.displayName;
 
   stmts.insertWarFeed.run({
     season_id: seasonId,
     event_type: "BotIncursion",
-    message: `${displayName} launches a coordinated assault on ${plan.regionName}!`,
+    message: `${displayName} launches a coordinated assault on ${plan.regionName}! The attack window is open for 2 hours.`,
     hex_id: null,
     involved_players: JSON.stringify([]),
     created_at: Math.floor(Date.now() / 1000),
   });
 
+  const taunt = pickTaunt(plan.botName, "onAttack");
   stmts.insertWarFeed.run({
     season_id: seasonId,
     event_type: "BotTaunt",
     message: `${displayName}: "${taunt}"`,
     hex_id: null,
     involved_players: JSON.stringify([]),
-    created_at: Math.floor(Date.now() / 1000),
+    created_at: Math.floor(Date.now() / 1000) + 1,
   });
 }
 
 /**
  * Get the current incursion target region for a bot (if any).
- * Used by strategy.ts to direct attacks during active incursions.
+ * Active during: announced but not executed, OR within the 2-hour execution window.
  */
 export function getActiveIncursionRegion(botName: BotName): number | null {
   const now = Math.floor(Date.now() / 1000);
@@ -194,8 +209,8 @@ export function getActiveIncursionRegion(botName: BotName): number | null {
     if (plan.botName === botName && plan.announced && !plan.executed) {
       return plan.regionId;
     }
-    // Also during 30 min after execution for multi-attack window
-    if (plan.botName === botName && plan.executed && now - plan.scheduledAt < 1800) {
+    // Active during the 2-hour execution window
+    if (plan.botName === botName && plan.executed && now < plan.windowEnd) {
       return plan.regionId;
     }
   }

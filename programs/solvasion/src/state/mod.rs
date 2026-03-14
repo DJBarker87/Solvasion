@@ -9,6 +9,7 @@ pub mod adjacency_set;
 pub mod reputation;
 pub mod phantom_recovery;
 pub mod pact;
+pub mod session_key;
 
 pub use global_config::*;
 pub use season::*;
@@ -21,3 +22,4 @@ pub use adjacency_set::*;
 pub use reputation::*;
 pub use phantom_recovery::*;
 pub use pact::*;
+pub use session_key::*;

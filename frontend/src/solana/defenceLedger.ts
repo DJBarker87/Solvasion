@@ -3,7 +3,10 @@
  * This is the only record of blinding factors — if lost, garrison cannot be revealed.
  *
  * Key: solvasion:defence:{wallet}:{seasonId}
- * Value: JSON array of DefenceLedgerEntry
+ * Value: XOR-obfuscated + base64 encoded JSON array of DefenceLedgerEntry
+ *
+ * The obfuscation uses a key derived from wallet + salt. This prevents browser
+ * extensions from finding blinding factors via simple JSON parsing of localStorage.
  */
 
 export interface DefenceLedgerEntry {
@@ -14,22 +17,57 @@ export interface DefenceLedgerEntry {
   createdAt: number;
 }
 
+const OBFUSCATION_SALT = "solvasion:ledger:v1";
+
 function storageKey(wallet: string, seasonId: number): string {
   return `solvasion:defence:${wallet}:${seasonId}`;
+}
+
+function obfuscate(data: string, wallet: string): string {
+  const key = wallet + OBFUSCATION_SALT;
+  const bytes = new TextEncoder().encode(data);
+  const keyBytes = new TextEncoder().encode(key);
+  const result = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    result[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
+  }
+  return btoa(String.fromCharCode(...result));
+}
+
+function deobfuscate(b64: string, wallet: string): string {
+  const key = wallet + OBFUSCATION_SALT;
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const keyBytes = new TextEncoder().encode(key);
+  const result = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) {
+    result[i] = bytes[i] ^ keyBytes[i % keyBytes.length];
+  }
+  return new TextDecoder().decode(result);
 }
 
 function load(wallet: string, seasonId: number): DefenceLedgerEntry[] {
   const raw = localStorage.getItem(storageKey(wallet, seasonId));
   if (!raw) return [];
   try {
-    return JSON.parse(raw);
+    // Try deobfuscating first (new format)
+    const json = deobfuscate(raw, wallet);
+    return JSON.parse(json);
   } catch {
-    return [];
+    // Fallback: try parsing as plaintext JSON (migration from old format)
+    try {
+      const entries = JSON.parse(raw) as DefenceLedgerEntry[];
+      // Re-save in obfuscated format to complete migration
+      save(wallet, seasonId, entries);
+      return entries;
+    } catch {
+      return [];
+    }
   }
 }
 
 function save(wallet: string, seasonId: number, entries: DefenceLedgerEntry[]) {
-  localStorage.setItem(storageKey(wallet, seasonId), JSON.stringify(entries));
+  const json = JSON.stringify(entries);
+  localStorage.setItem(storageKey(wallet, seasonId), obfuscate(json, wallet));
 }
 
 /** Get the ledger entry for a specific hex. */

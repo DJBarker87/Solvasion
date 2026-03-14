@@ -1,14 +1,12 @@
 export function attackAlert(params: {
   hexName: string;
   attackerWallet: string;
-  attackerEnergy: number;
   deadlineUtc: string;
   timeRemaining: string;
 }): string {
   return [
     `\u26a0\ufe0f INCOMING ATTACK on ${params.hexName}`,
-    `Attacker: ${params.attackerWallet.slice(0, 6)}...${params.attackerWallet.slice(-4)} committed ${params.attackerEnergy} energy`,
-    `Your garrison: committed (amount hidden)`,
+    `Attacker: ${params.attackerWallet.slice(0, 6)}...${params.attackerWallet.slice(-4)}`,
     `Deadline: ${params.deadlineUtc} (${params.timeRemaining} remaining)`,
     ``,
     `If you don't reveal, your garrison is treated as 0.`,

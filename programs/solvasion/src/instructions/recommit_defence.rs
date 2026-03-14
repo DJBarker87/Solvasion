@@ -8,7 +8,10 @@ use crate::events::DefenceRecommitted;
 #[derive(Accounts)]
 #[instruction(hex_id: u64)]
 pub struct RecommitDefence<'info> {
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -54,6 +57,15 @@ pub fn handler(
     let player = &mut ctx.accounts.player;
     let hex = &mut ctx.accounts.hex;
 
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
+
     let phase = effective_phase(season, now);
     require!(phase != Phase::Ended, SolvasionError::SeasonEnded);
 
@@ -72,9 +84,7 @@ pub fn handler(
     recalculate_energy(player, season, now)?;
 
     // Return old energy (capped at energy_cap)
-    player.energy_committed = player.energy_committed
-        .checked_sub(old_energy_amount)
-        .ok_or(SolvasionError::ArithmeticOverflow)?;
+    player.energy_committed = player.energy_committed.saturating_sub(old_energy_amount);
     let new_balance = (player.energy_balance as u64)
         .checked_add(old_energy_amount as u64)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

@@ -6,7 +6,10 @@ use crate::events::PostureSet;
 
 #[derive(Accounts)]
 pub struct SetPosture<'info> {
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -35,6 +38,16 @@ pub fn handler(
 ) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     let season = &ctx.accounts.season;
+
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        &ctx.accounts.player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
+
     let phase = effective_phase(season, now);
     require!(phase != Phase::Ended, SolvasionError::SeasonEnded);
 

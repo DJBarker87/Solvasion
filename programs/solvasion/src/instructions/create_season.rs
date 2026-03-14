@@ -81,8 +81,14 @@ pub struct CreateSeasonParams {
     pub pact_break_penalty_points: u32,
     pub pact_max_duration: i64,
 
+    // Rate divisor (seconds per rate unit, default 3600 = per hour)
+    pub rate_divisor: u32,
+
     // Landmarks
     pub landmarks: Vec<u64>,
+
+    // Skirmish mode
+    pub is_skirmish: bool,
 }
 
 #[derive(Accounts)]
@@ -129,18 +135,37 @@ pub fn handler(ctx: Context<CreateSeason>, params: CreateSeasonParams) -> Result
     require!(!ctx.accounts.global_config.paused, SolvasionError::ProgramPaused);
 
     let config = &mut ctx.accounts.global_config;
+
+    // Only one full season at a time; skirmishes are unlimited
+    if !params.is_skirmish {
+        require!(
+            config.active_season_id == 0,
+            SolvasionError::SeasonAlreadyActive
+        );
+    }
+
     config.season_counter = config.season_counter
         .checked_add(1)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
     let season_id = config.season_counter;
 
-    // Validate timing
-    require!(params.land_rush_end < params.season_end, SolvasionError::ArithmeticOverflow);
-    require!(params.war_start <= params.land_rush_end, SolvasionError::ArithmeticOverflow);
-    require!(params.escalation_start <= params.season_end, SolvasionError::ArithmeticOverflow);
-    require!(params.landmarks.len() <= 32, SolvasionError::ArithmeticOverflow);
+    // Track active season (not for skirmishes)
+    if !params.is_skirmish {
+        config.active_season_id = season_id;
+    }
 
     let now = Clock::get()?.unix_timestamp;
+
+    // Validate timing chain
+    require!(params.season_end > now, SolvasionError::ArithmeticOverflow);
+    require!(params.war_start >= params.land_rush_end, SolvasionError::ArithmeticOverflow);
+    require!(params.escalation_start >= params.war_start, SolvasionError::ArithmeticOverflow);
+    require!(params.season_end > params.escalation_start, SolvasionError::ArithmeticOverflow);
+    require!(params.join_cutoff <= params.season_end, SolvasionError::ArithmeticOverflow);
+    if params.escalation_stage_2_start > 0 {
+        require!(params.escalation_stage_2_start >= params.escalation_start, SolvasionError::ArithmeticOverflow);
+    }
+    require!(params.landmarks.len() <= 32, SolvasionError::ArithmeticOverflow);
 
     let season = &mut ctx.accounts.season;
     season.season_id = season_id;
@@ -237,9 +262,16 @@ pub fn handler(ctx: Context<CreateSeason>, params: CreateSeasonParams) -> Result
     season.pact_break_penalty_points = params.pact_break_penalty_points;
     season.pact_max_duration = params.pact_max_duration;
 
+    // Rate divisor (must be > 0)
+    require!(params.rate_divisor > 0, SolvasionError::ArithmeticOverflow);
+    season.rate_divisor = params.rate_divisor;
+
     // Landmarks
     season.landmark_count = params.landmarks.len() as u8;
     season.landmarks = params.landmarks;
+
+    // Skirmish mode
+    season.is_skirmish = params.is_skirmish;
 
     // Season counters
     let counters = &mut ctx.accounts.season_counters;

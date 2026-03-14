@@ -11,7 +11,7 @@ export type SolvasionProgram = Program<any>;
 export function getProgram(wallet: AnchorWallet, connection: Connection): SolvasionProgram {
   const provider = new AnchorProvider(connection, wallet, {
     commitment: 'confirmed',
-    skipPreflight: true,
+    skipPreflight: import.meta.env.DEV,
   });
   return new Program(idl as any, provider) as unknown as SolvasionProgram;
 }

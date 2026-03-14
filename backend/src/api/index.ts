@@ -13,6 +13,7 @@ import { registerStatsRoutes } from "./routes/stats.js";
 import { registerGuardianRoutes } from "./routes/guardian.js";
 import { registerContractRoutes } from "./routes/contracts.js";
 import { registerReplayRoutes } from "./routes/replay.js";
+import { registerTelegramRoutes } from "./routes/telegram.js";
 import { registerWebSocket } from "./ws.js";
 
 export async function startApi() {
@@ -55,6 +56,7 @@ export async function startApi() {
   registerGuardianRoutes(app);
   registerContractRoutes(app);
   registerReplayRoutes(app);
+  registerTelegramRoutes(app);
 
   // WebSocket
   registerWebSocket(app);

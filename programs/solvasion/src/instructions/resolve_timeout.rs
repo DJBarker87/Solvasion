@@ -1,14 +1,19 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player, Hex, Attack, AttackResult, PhantomRecovery};
+use crate::state::{Season, Player, Hex, Attack, AttackResult, PhantomRecovery, GlobalConfig};
 use crate::errors::SolvasionError;
-use crate::helpers::recalculate_points;
+use crate::helpers::{recalculate_points, recalculate_energy};
 use crate::events::{AttackResolved, TheatreBonusAwarded, VictoryThresholdReached, LandmarkCaptureBonus, ComebackBurst};
 
 #[derive(Accounts)]
 #[instruction(attack_id: u64)]
 pub struct ResolveTimeout<'info> {
-    #[account(mut)]
     pub payer: Signer<'info>,
+
+    #[account(
+        seeds = [GlobalConfig::SEED],
+        bump,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -61,9 +66,10 @@ pub struct ResolveTimeout<'info> {
     )]
     pub attack: Account<'info, Attack>,
 
+    // FIX HIGH-4: Use init_if_needed to handle re-timeout on same hex
     #[account(
-        init,
-        payer = payer,
+        init_if_needed,
+        payer = treasury,
         space = 8 + PhantomRecovery::INIT_SPACE,
         seeds = [
             PhantomRecovery::SEED,
@@ -75,12 +81,13 @@ pub struct ResolveTimeout<'info> {
     )]
     pub phantom_recovery: Account<'info, PhantomRecovery>,
 
-    /// CHECK: Receives rent from closed attack account. Must match attack.attacker.
+    /// CHECK: Treasury PDA pays rent and receives rent from closed accounts
     #[account(
         mut,
-        constraint = attacker_rent_recipient.key() == attack.attacker @ SolvasionError::InvalidRecipient,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
     )]
-    pub attacker_rent_recipient: UncheckedAccount<'info>,
+    pub treasury: SystemAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -91,6 +98,12 @@ pub fn handler(
 ) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     let season = &ctx.accounts.season;
+    let config = &ctx.accounts.global_config;
+
+    // Treasury safety: verify sufficient balance for PhantomRecovery rent
+    let rent = Rent::get()?.minimum_balance(8 + PhantomRecovery::INIT_SPACE);
+    crate::helpers::require_treasury_funded(ctx.accounts.treasury.lamports(), config, rent)?;
+
     let defender = &mut ctx.accounts.player_defender;
     let attacker = &mut ctx.accounts.player_attacker;
     let hex = &mut ctx.accounts.hex;
@@ -99,7 +112,9 @@ pub fn handler(
     // Verify deadline has passed
     require!(now > attack.deadline, SolvasionError::DeadlineNotPassed);
 
-    // Recalculate points for both players
+    // Recalculate energy and points for both players
+    recalculate_energy(defender, season, now)?;
+    recalculate_energy(attacker, season, now)?;
     recalculate_points(defender, season, now)?;
     recalculate_points(attacker, season, now)?;
 
@@ -120,14 +135,24 @@ pub fn handler(
         .checked_add(season.phantom_recovery_energy)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
 
-    // Create PhantomRecovery account
+    // FIX HIGH-4: Handle PhantomRecovery with init_if_needed (re-timeout accumulation)
     let phantom = &mut ctx.accounts.phantom_recovery;
-    phantom.season_id = season_id;
-    phantom.player = defender.player;
-    phantom.hex_id = hex_id;
-    phantom.recovery_amount = season.phantom_recovery_energy;
-    phantom.lost_at = now;
-    phantom.recovered = false;
+    if phantom.season_id == 0 {
+        // Freshly created
+        phantom.season_id = season_id;
+        phantom.player = defender.player;
+        phantom.hex_id = hex_id;
+        phantom.recovery_amount = season.phantom_recovery_energy;
+        phantom.lost_at = now;
+        phantom.recovered = false;
+    } else {
+        // Re-timeout on same hex — accumulate
+        phantom.recovery_amount = phantom.recovery_amount
+            .checked_add(season.phantom_recovery_energy)
+            .ok_or(SolvasionError::ArithmeticOverflow)?;
+        phantom.lost_at = now;
+        phantom.recovered = false;
+    }
 
     // Transfer hex ownership
     let is_landmark = hex.is_landmark;
@@ -265,12 +290,12 @@ pub fn handler(
         guardian_reveal: false,
     });
 
-    // Close Attack account (rent to attacker)
+    // Close Attack account (rent to treasury)
     let attack_account_info = ctx.accounts.attack.to_account_info();
-    let rent_recipient = ctx.accounts.attacker_rent_recipient.to_account_info();
+    let treasury_info = ctx.accounts.treasury.to_account_info();
     let lamports = attack_account_info.lamports();
     **attack_account_info.try_borrow_mut_lamports()? = 0;
-    **rent_recipient.try_borrow_mut_lamports()? = rent_recipient
+    **treasury_info.try_borrow_mut_lamports()? = treasury_info
         .lamports()
         .checked_add(lamports)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

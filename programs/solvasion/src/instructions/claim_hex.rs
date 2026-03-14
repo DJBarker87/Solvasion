@@ -1,14 +1,24 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, SeasonCounters, Player, Hex, ValidHexSet, AdjacencySet, Phase};
+use crate::state::{Season, SeasonCounters, Player, Hex, ValidHexSet, AdjacencySet, Phase, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::helpers::{effective_phase, recalculate_energy, recalculate_points};
+use crate::crypto::reject_identity_commitment;
 use crate::events::HexClaimed;
 
 #[derive(Accounts)]
 #[instruction(hex_id: u64)]
 pub struct ClaimHex<'info> {
-    #[account(mut)]
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
+
+    #[account(
+        seeds = [GlobalConfig::SEED],
+        bump,
+        constraint = !global_config.paused @ SolvasionError::ProgramPaused,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -38,7 +48,7 @@ pub struct ClaimHex<'info> {
 
     #[account(
         init,
-        payer = player_wallet,
+        payer = treasury,
         space = 8 + Hex::INIT_SPACE,
         seeds = [
             Hex::SEED,
@@ -77,6 +87,14 @@ pub struct ClaimHex<'info> {
     /// CHECK: validated in handler logic via PDA derivation and owner check.
     pub adjacent_hex: Option<Account<'info, Hex>>,
 
+    /// CHECK: Treasury PDA pays rent for account creation
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -89,6 +107,20 @@ pub fn handler(
     let now = Clock::get()?.unix_timestamp;
     let season = &ctx.accounts.season;
     let player = &mut ctx.accounts.player;
+    let config = &ctx.accounts.global_config;
+
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
+
+    // Treasury safety: verify sufficient balance for hex rent
+    let rent = Rent::get()?.minimum_balance(8 + Hex::INIT_SPACE);
+    crate::helpers::require_treasury_funded(ctx.accounts.treasury.lamports(), config, rent)?;
 
     // Check phase
     let phase = effective_phase(season, now);
@@ -101,6 +133,9 @@ pub fn handler(
     // Verify sufficient energy
     require!(player.energy_balance >= season.claim_cost, SolvasionError::InsufficientEnergy);
 
+    // FIX M-2: Reject identity point commitments
+    reject_identity_commitment(&initial_commitment)?;
+
     // Validate hex is in valid hex set (binary search)
     let hex_index = ctx.accounts.valid_hex_set
         .find_hex(hex_id)
@@ -109,8 +144,9 @@ pub fn handler(
     // Adjacency check
     if player.hex_count == 0 {
         // First claim or respawn — adjacency waived
-        if player.joined_at != now {
-            // This is a respawn (player previously had hexes)
+        // FIX L-10: Use peak_hex_count instead of joined_at to detect respawn
+        if player.peak_hex_count > 0 {
+            // Player previously had hexes — this is a respawn
             require!(
                 player.respawn_count < season.max_respawns_per_season,
                 SolvasionError::RespawnLimitExceeded
@@ -119,6 +155,7 @@ pub fn handler(
                 .checked_add(1)
                 .ok_or(SolvasionError::ArithmeticOverflow)?;
         }
+        // else: first ever claim (peak_hex_count == 0), no respawn count needed
     } else {
         // Must prove adjacency
         let adjacent_hex = ctx.accounts.adjacent_hex

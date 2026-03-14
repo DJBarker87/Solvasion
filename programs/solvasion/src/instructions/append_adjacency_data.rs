@@ -39,6 +39,8 @@ pub fn handler(
 ) -> Result<()> {
     let adj = &mut ctx.accounts.adjacency_set;
 
+    // Normalize and collect new edges
+    let start = adj.edges.len();
     for pair in &edges {
         let (a, b) = if pair[0] < pair[1] {
             (pair[0], pair[1])
@@ -46,6 +48,24 @@ pub fn handler(
             (pair[1], pair[0])
         };
         adj.edges.push(Edge { hex_a: a, hex_b: b });
+    }
+
+    // Verify sort order
+    if adj.edges.len() > 1 {
+        if start > 0 {
+            let prev = &adj.edges[start - 1];
+            let curr = &adj.edges[start];
+            require!(
+                (curr.hex_a, curr.hex_b) > (prev.hex_a, prev.hex_b),
+                SolvasionError::UnsortedData
+            );
+        }
+        for i in (start + 1)..adj.edges.len() {
+            require!(
+                (adj.edges[i].hex_a, adj.edges[i].hex_b) > (adj.edges[i-1].hex_a, adj.edges[i-1].hex_b),
+                SolvasionError::UnsortedData
+            );
+        }
     }
 
     adj.edge_count = adj.edges.len() as u32;

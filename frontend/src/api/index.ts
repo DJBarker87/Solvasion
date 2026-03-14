@@ -2,6 +2,10 @@ import type { Season, HexRow, Player, FeedItem, Region, Attack } from '../types'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+if (!import.meta.env.DEV && API.startsWith('http://')) {
+  console.warn('WARNING: API URL uses HTTP in production. This exposes data in transit.');
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API}${path}`);
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`);

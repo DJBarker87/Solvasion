@@ -2,6 +2,7 @@ use anchor_lang::prelude::*;
 use crate::state::{Season, Player, Hex, Phase};
 use crate::errors::SolvasionError;
 use crate::helpers::{effective_phase, recalculate_energy};
+use crate::crypto::reject_identity_commitment;
 use crate::events::DefencesCommitted;
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -13,7 +14,10 @@ pub struct CommitmentEntry {
 
 #[derive(Accounts)]
 pub struct CommitDefence<'info> {
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -32,7 +36,7 @@ pub struct CommitDefence<'info> {
         constraint = player.player == player_wallet.key(),
     )]
     pub player: Account<'info, Player>,
-    // Hex accounts passed via remaining_accounts
+    // Hex accounts + optional session key PDA passed via remaining_accounts
 }
 
 pub fn handler(
@@ -43,6 +47,15 @@ pub fn handler(
     let now = Clock::get()?.unix_timestamp;
     let season = &ctx.accounts.season;
     let player = &mut ctx.accounts.player;
+
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
 
     // Must be in War or Escalation phase (not LandRush)
     let phase = effective_phase(season, now);
@@ -64,8 +77,10 @@ pub fn handler(
     let program_id = ctx.program_id;
     let remaining = &ctx.remaining_accounts;
 
+    // remaining_accounts contains hex accounts (one per commitment) plus an optional
+    // session key PDA at the end when using session key auth.
     require!(
-        remaining.len() == commitments.len(),
+        remaining.len() >= commitments.len(),
         SolvasionError::InvalidHex
     );
 
@@ -95,6 +110,9 @@ pub fn handler(
         require!(hex.owner == player.player, SolvasionError::NotHexOwner);
         require!(!hex.commitment_locked, SolvasionError::CommitmentLocked);
         require!(!hex.has_commitment, SolvasionError::CommitmentExists);
+
+        // Reject identity point (zero) commitments
+        reject_identity_commitment(&entry.commitment)?;
 
         hex.defence_commitment = entry.commitment;
         hex.has_commitment = true;

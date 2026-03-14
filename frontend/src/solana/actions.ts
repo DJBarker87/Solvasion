@@ -1,4 +1,3 @@
-// @ts-nocheck — Anchor's deep generic types cause TS2589 with Program<any>
 /**
  * Transaction builders for all 7 game instructions.
  * Each function takes an Anchor program + relevant params and returns a tx signature.
@@ -13,6 +12,33 @@ import {
 import { createCommitment, randomBlind } from './crypto';
 import * as ledger from './defenceLedger';
 
+// Use a loosely-typed methods accessor to avoid Anchor's deep generic recursion (TS2589).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function methods(program: SolvasionProgram): any {
+  return program.methods;
+}
+
+// Fetch on-chain Player account (e.g. for commitment_nonce).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function accounts(program: SolvasionProgram): any {
+  return program.account;
+}
+
+/** Fetch the on-chain commitment_nonce for a player. Returns 0 if account not found. */
+export async function fetchOnChainNonce(
+  program: SolvasionProgram,
+  seasonId: number,
+  wallet: PublicKey,
+): Promise<number> {
+  const [playerPda] = findPlayer(seasonId, wallet);
+  try {
+    const playerAccount = await accounts(program).player.fetch(playerPda);
+    return playerAccount.commitmentNonce?.toNumber?.() ?? playerAccount.commitmentNonce ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
 // ---- join_season ----
 
 export async function joinSeason(
@@ -24,7 +50,7 @@ export async function joinSeason(
   const [countersPda] = findSeasonCounters(seasonId);
   const [playerPda] = findPlayer(seasonId, wallet);
 
-  return program.methods
+  return methods(program)
     .joinSeason()
     .accounts({
       playerWallet: wallet,
@@ -33,7 +59,7 @@ export async function joinSeason(
       player: playerPda,
       systemProgram: SystemProgram.programId,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 }
 
 // ---- claim_hex ----
@@ -64,7 +90,7 @@ export async function claimHex(
 
   const hexBN = new BN(hexId);
 
-  const sig = await program.methods
+  const sig = await methods(program)
     .claimHex(hexBN, commitment, new BN(nonce))
     .accounts({
       playerWallet: wallet,
@@ -77,7 +103,7 @@ export async function claimHex(
       adjacentHex: adjacentHexPda,
       systemProgram: SystemProgram.programId,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 
   // Save the blind to the defence ledger (even though amount is 0)
   ledger.setEntry(wallet.toBase58(), seasonId, {
@@ -142,7 +168,7 @@ export async function commitDefence(
     isWritable: true,
   }));
 
-  return program.methods
+  return methods(program)
     .commitDefence(commitments, totalDelta)
     .accounts({
       playerWallet: wallet,
@@ -150,7 +176,7 @@ export async function commitDefence(
       player: playerPda,
     })
     .remainingAccounts(remainingAccounts)
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 }
 
 // ---- increase_defence ----
@@ -171,7 +197,7 @@ export async function increaseDefence(
   const blind = randomBlind();
   const { commitment } = createCommitment(newTotalAmount, blind);
 
-  const sig = await program.methods
+  const sig = await methods(program)
     .increaseDefence(new BN(hexId), commitment, new BN(nonce), delta)
     .accounts({
       playerWallet: wallet,
@@ -179,7 +205,7 @@ export async function increaseDefence(
       player: playerPda,
       hex: hexPda,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 
   ledger.setEntry(wallet.toBase58(), seasonId, {
     hexId,
@@ -209,7 +235,7 @@ export async function withdrawDefence(
 
   const blindBytes = ledger.hexToBytes(entry.blind);
 
-  const sig = await program.methods
+  const sig = await methods(program)
     .withdrawDefence(new BN(hexId), entry.amount, Array.from(blindBytes))
     .accounts({
       playerWallet: wallet,
@@ -217,7 +243,7 @@ export async function withdrawDefence(
       player: playerPda,
       hex: hexPda,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 
   // Remove ledger entry on success
   ledger.removeEntry(wallet.toBase58(), seasonId, hexId);
@@ -246,7 +272,7 @@ export async function launchAttack(
   const [adjPda] = findAdjacencySet(seasonId, 0);
   const [attackPda] = findAttack(seasonId, nextAttackId);
 
-  return program.methods
+  return methods(program)
     .launchAttack(new BN(targetHexId), new BN(originHexId), energy, 0)
     .accounts({
       playerWallet: wallet,
@@ -260,7 +286,7 @@ export async function launchAttack(
       attack: attackPda,
       systemProgram: SystemProgram.programId,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 }
 
 // ---- reveal_defence ----
@@ -284,7 +310,7 @@ export async function revealDefence(
 
   const blindBytes = ledger.hexToBytes(entry.blind);
 
-  const sig = await program.methods
+  const sig = await methods(program)
     .revealDefence(new BN(attackId), entry.amount, Array.from(blindBytes))
     .accounts({
       caller: wallet,
@@ -295,7 +321,7 @@ export async function revealDefence(
       attack: attackPda,
       attackerRentRecipient: attackerWallet,
     })
-    .rpc({ commitment: 'confirmed', skipPreflight: true });
+    .rpc({ commitment: 'confirmed', skipPreflight: import.meta.env.DEV });
 
   // Commitment is consumed on any reveal — remove ledger entry
   ledger.removeEntry(wallet.toBase58(), seasonId, hexId);

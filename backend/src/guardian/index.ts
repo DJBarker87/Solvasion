@@ -76,6 +76,10 @@ export async function onAttackLaunched(data: AttackData): Promise<void> {
     return;
   }
 
+  // Random delay to obscure guardian vs manual reveal timing
+  const jitter = 30_000 + Math.floor(Math.random() * 150_000); // 30-180 seconds
+  await new Promise((r) => setTimeout(r, jitter));
+
   // Decrypt
   let revealed;
   try {

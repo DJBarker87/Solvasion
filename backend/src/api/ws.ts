@@ -13,8 +13,30 @@ interface Subscriber {
 // Season ID → Set of subscribers
 const subscribers = new Map<number, Set<Subscriber>>();
 
+// Per-IP WebSocket connection limiting
+const connectionsPerIp = new Map<string, number>();
+const MAX_CONNECTIONS_PER_IP = 5;
+
 export function registerWebSocket(app: FastifyInstance) {
   app.get("/ws", { websocket: true }, (socket, req) => {
+    // Per-IP connection limiting
+    const ip = req.socket.remoteAddress || "unknown";
+    const ipCount = connectionsPerIp.get(ip) || 0;
+    if (ipCount >= MAX_CONNECTIONS_PER_IP) {
+      socket.close();
+      return;
+    }
+    connectionsPerIp.set(ip, ipCount + 1);
+
+    socket.on("close", () => {
+      const current = connectionsPerIp.get(ip) || 1;
+      if (current <= 1) {
+        connectionsPerIp.delete(ip);
+      } else {
+        connectionsPerIp.set(ip, current - 1);
+      }
+    });
+
     let sub: Subscriber | null = null;
 
     socket.on("message", (raw: any) => {

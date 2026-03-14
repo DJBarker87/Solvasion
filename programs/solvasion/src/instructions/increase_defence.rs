@@ -2,12 +2,16 @@ use anchor_lang::prelude::*;
 use crate::state::{Season, Player, Hex, Phase};
 use crate::errors::SolvasionError;
 use crate::helpers::{effective_phase, recalculate_energy};
+use crate::crypto::reject_identity_commitment;
 use crate::events::DefenceIncreased;
 
 #[derive(Accounts)]
 #[instruction(hex_id: u64)]
 pub struct IncreaseDefence<'info> {
-    pub player_wallet: Signer<'info>,
+    pub authority: Signer<'info>,
+
+    /// CHECK: Player wallet for PDA derivation. Verified by authority check in handler.
+    pub player_wallet: UncheckedAccount<'info>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -51,6 +55,15 @@ pub fn handler(
     let player = &mut ctx.accounts.player;
     let hex = &mut ctx.accounts.hex;
 
+    crate::helpers::verify_player_authority(
+        &ctx.accounts.authority.key(),
+        player,
+        ctx.remaining_accounts,
+        ctx.program_id,
+        season.season_id,
+        now,
+    )?;
+
     // Allowed in ALL phases except Ended (includes LandRush)
     let phase = effective_phase(season, now);
     require!(phase != Phase::Ended, SolvasionError::SeasonEnded);
@@ -59,6 +72,9 @@ pub fn handler(
     require!(hex.owner == player.player, SolvasionError::NotHexOwner);
     require!(hex.has_commitment, SolvasionError::NoCommitment);
     require!(!hex.commitment_locked, SolvasionError::CommitmentLocked);
+
+    // Reject identity point (zero) commitments
+    reject_identity_commitment(&new_commitment)?;
 
     // Verify nonce
     require!(new_nonce == player.commitment_nonce, SolvasionError::InvalidNonce);

@@ -1,5 +1,9 @@
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+if (!import.meta.env.DEV && API.startsWith('http://')) {
+  console.warn('WARNING: Guardian API URL uses HTTP in production. Blinding factors are exposed in transit.');
+}
+
 export interface GuardianPacketPayload {
   season_id: number;
   player_wallet: string;

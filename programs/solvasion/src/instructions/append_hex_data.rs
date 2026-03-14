@@ -41,6 +41,17 @@ pub fn handler(
     require!(hex_ids.len() == region_ids.len(), SolvasionError::ArithmeticOverflow);
 
     let vhs = &mut ctx.accounts.valid_hex_set;
+
+    // Verify sort order before extending
+    if !hex_ids.is_empty() {
+        for i in 1..hex_ids.len() {
+            require!(hex_ids[i] > hex_ids[i-1], SolvasionError::UnsortedData);
+        }
+        if !vhs.hex_ids.is_empty() {
+            require!(hex_ids[0] > *vhs.hex_ids.last().unwrap(), SolvasionError::UnsortedData);
+        }
+    }
+
     vhs.hex_ids.extend_from_slice(&hex_ids);
     vhs.region_ids.extend_from_slice(&region_ids);
     vhs.hex_count = vhs.hex_ids.len() as u32;

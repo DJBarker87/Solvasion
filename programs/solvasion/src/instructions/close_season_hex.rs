@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Hex};
+use crate::state::{Season, Hex, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::events::HexAccountClosed;
 
@@ -24,11 +24,18 @@ pub struct CloseSeasonHex<'info> {
         bump,
     )]
     pub hex: Account<'info, Hex>,
-    // remaining_accounts[0]: rent recipient (must match hex.owner)
+
+    /// CHECK: Treasury PDA receives rent from closed accounts
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
 }
 
-pub fn handler<'info>(
-    ctx: Context<'_, '_, 'info, 'info, CloseSeasonHex<'info>>,
+pub fn handler(
+    ctx: Context<CloseSeasonHex>,
     _hex_id: u64,
 ) -> Result<()> {
     let season = &ctx.accounts.season;
@@ -38,22 +45,16 @@ pub fn handler<'info>(
     require!(season.has_actual_end, SolvasionError::SeasonNotEnded);
     require!(season.finalization_complete, SolvasionError::FinalizationIncomplete);
 
-    // Get rent recipient from remaining_accounts
-    require!(ctx.remaining_accounts.len() >= 1, SolvasionError::Unauthorized);
-    let recipient = &ctx.remaining_accounts[0];
-
-    // Verify recipient matches hex owner
-    require!(recipient.key() == hex.owner, SolvasionError::InvalidRecipient);
-
     let hex_id = hex.hex_id;
     let season_id = season.season_id;
-    let rent_returned_to = hex.owner;
+    let rent_returned_to = ctx.accounts.treasury.key();
 
-    // Close hex account: drain lamports to recipient, zero data
+    // Close hex account: drain lamports to treasury, zero data
     let hex_info = ctx.accounts.hex.to_account_info();
+    let treasury_info = ctx.accounts.treasury.to_account_info();
     let lamports = hex_info.lamports();
     **hex_info.try_borrow_mut_lamports()? = 0;
-    **recipient.try_borrow_mut_lamports()? = recipient
+    **treasury_info.try_borrow_mut_lamports()? = treasury_info
         .lamports()
         .checked_add(lamports)
         .ok_or(SolvasionError::ArithmeticOverflow)?;

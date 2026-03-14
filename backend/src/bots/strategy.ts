@@ -7,9 +7,10 @@ import {
   findSeason, findSeasonCounters, findPlayer,
   findHex, findAttack,
 } from "../utils/pda.js";
-import { createCommitment, randomBlind } from "../utils/pedersen.js";
+import { createCommitment } from "../utils/pedersen.js";
 import { logger } from "../utils/logger.js";
 import type { BotName } from "./wallet.js";
+import { deriveBotBlind } from "./wallet.js";
 import { BOT_PERSONALITIES } from "./config.js";
 import { getActiveIncursionRegion } from "./incursions.js";
 
@@ -29,6 +30,27 @@ function pickWithRegionPreference(botName: BotName, candidates: any[]): any {
 }
 
 /**
+ * Check how many human players are active. Used for adaptive scaling —
+ * bots become less aggressive when more humans are playing.
+ */
+function getHumanPlayerCount(seasonId: number, stmts: ReturnType<typeof preparedStatements>): number {
+  const allBots = stmts.getAllBotStates.all(seasonId) as any[];
+  const botWallets = new Set(allBots.map((b: any) => b.wallet));
+  const allPlayers = stmts.getLeaderboard.all(seasonId) as any[];
+  return allPlayers.filter((p: any) => !botWallets.has(p.wallet)).length;
+}
+
+/**
+ * Adaptive tick probability — bots act less frequently when many humans are playing.
+ * With 0 humans: 100% tick chance. With 10+: 40% tick chance.
+ */
+function shouldTickThisCycle(seasonId: number, stmts: ReturnType<typeof preparedStatements>): boolean {
+  const humanCount = getHumanPlayerCount(seasonId, stmts);
+  const tickChance = Math.max(0.4, 1.0 - humanCount * 0.06);
+  return Math.random() < tickChance;
+}
+
+/**
  * Run a single tick for a bot. Called every 30s (staggered per bot).
  */
 export async function botTick(
@@ -44,6 +66,9 @@ export async function botTick(
   const season = stmts.getSeason.get(seasonId) as any;
   if (!season || season.phase === "Ended") return;
 
+  // Adaptive scaling — skip some ticks when lots of humans are playing
+  if (!shouldTickThisCycle(seasonId, stmts)) return;
+
   // Get bot's player state from DB
   const botWallet = botKeypair.publicKey.toBase58();
   const player = stmts.getPlayer.get(seasonId, botWallet) as any;
@@ -54,6 +79,7 @@ export async function botTick(
   }
 
   const phase = season.phase;
+  const personality = BOT_PERSONALITIES[botName];
 
   if (phase === "LandRush" || phase === "War" || phase.startsWith("Escalation")) {
     const claimed = await tryClaim(botName, botKeypair, program, seasonId, stmts);
@@ -65,7 +91,11 @@ export async function botTick(
   if (phase === "War" || phase.startsWith("Escalation")) {
     await tryDefend(botName, botKeypair, program, seasonId, stmts);
     await delay(2000);
-    await tryAttack(botName, botKeypair, program, seasonId, stmts);
+
+    // Archetype-driven attack probability
+    if (Math.random() < personality.aggressiveness) {
+      await tryAttack(botName, botKeypair, program, seasonId, stmts);
+    }
   }
 
   stmts.upsertBotState.run({
@@ -150,9 +180,7 @@ async function tryClaim(
   const [playerPda] = findPlayer(programId, seasonBN, botKeypair.publicKey);
   const [hexPda] = findHex(programId, seasonBN, hexBN);
 
-  const blind = randomBlind();
   const claimEnergy = 5;
-  const { commitment } = createCommitment(claimEnergy, blind);
 
   const [vhsPda] = PublicKey.findProgramAddressSync(
     [Buffer.from("valid_hexes"), seasonBN.toArrayLike(Buffer, "le", 8), Buffer.from([0])],
@@ -165,6 +193,10 @@ async function tryClaim(
 
   // Get current nonce from on-chain
   const nonce = await getBotNonce(program, seasonId, botKeypair);
+
+  // Derive blinding factor deterministically — never stored
+  const blind = deriveBotBlind(config.botSeed, botName, target.hex_id, nonce);
+  const { commitment } = createCommitment(claimEnergy, blind);
 
   // Find an owned hex for adjacency proof (if not first claim)
   const botWallet = botKeypair.publicKey.toBase58();
@@ -200,7 +232,7 @@ async function tryClaim(
       bot_name: botName,
       hex_id: target.hex_id,
       energy_amount: claimEnergy,
-      blind_hex: Buffer.from(blind).toString("hex"),
+      blind_hex: "",
       nonce,
     });
 
@@ -224,6 +256,7 @@ async function tryDefend(
 ): Promise<void> {
   const botWallet = botKeypair.publicKey.toBase58();
   const ownedHexes = stmts.getPlayerHexes.all(seasonId, botWallet) as any[];
+  const personality = BOT_PERSONALITIES[botName];
 
   const undefended = ownedHexes.filter(
     (h: any) => !h.has_commitment && !h.under_attack
@@ -235,16 +268,24 @@ async function tryDefend(
   const [seasonPda] = findSeason(programId, seasonBN);
   const [playerPda] = findPlayer(programId, seasonBN, botKeypair.publicKey);
 
-  for (const hex of undefended.slice(0, 2)) {
-    const energyAmount = 10 + Math.floor(Math.random() * 11); // 10-20
-    const blind = randomBlind();
-    const { commitment } = createCommitment(energyAmount, blind);
+  // Turtles defend more hexes per tick, aggressors fewer
+  const maxDefencePerTick = personality.archetype === "turtle" ? 4 : 2;
+
+  for (const hex of undefended.slice(0, maxDefencePerTick)) {
+    // Scale defence energy by archetype
+    const baseMin = personality.archetype === "turtle" ? 15 : 8;
+    const baseMax = personality.archetype === "turtle" ? 35 : 20;
+    const energyAmount = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
 
     const hexBN = new BN(hex.hex_id);
     const [hexPda] = findHex(programId, seasonBN, hexBN);
 
     // Get current nonce from on-chain
     const nonce = await getBotNonce(program, seasonId, botKeypair);
+
+    // Derive blinding factor deterministically — never stored
+    const blind = deriveBotBlind(config.botSeed, botName, hex.hex_id, nonce);
+    const { commitment } = createCommitment(energyAmount, blind);
 
     try {
       // Always use increase_defence — it works whether hex has a commitment or not
@@ -263,7 +304,7 @@ async function tryDefend(
         bot_name: botName,
         hex_id: hex.hex_id,
         energy_amount: energyAmount,
-        blind_hex: Buffer.from(blind).toString("hex"),
+        blind_hex: "",
         nonce,
       });
 
@@ -286,11 +327,18 @@ async function tryAttack(
 ): Promise<void> {
   const botWallet = botKeypair.publicKey.toBase58();
   const player = stmts.getPlayer.get(seasonId, botWallet) as any;
-  if (!player || player.energy_balance < 50) return;
+  const personality = BOT_PERSONALITIES[botName];
+
+  // Minimum energy threshold varies by archetype
+  const minEnergyToAttack = personality.archetype === "turtle" ? 80 : 50;
+  if (!player || player.energy_balance < minEnergyToAttack) return;
 
   const ownedHexes = stmts.getPlayerHexes.all(seasonId, botWallet) as any[];
+
+  // Turtles: always defend before attacking. Others: defend if > 30% undefended
   const undefended = ownedHexes.filter((h: any) => !h.has_commitment && !h.under_attack);
-  if (undefended.length > 0) return; // defend first
+  if (personality.archetype === "turtle" && undefended.length > 0) return;
+  if (undefended.length > ownedHexes.length * 0.3) return;
 
   const allHexes = stmts.getSeasonMap.all(seasonId) as any[];
 
@@ -312,16 +360,17 @@ async function tryAttack(
       ? inRegion[Math.floor(Math.random() * inRegion.length)]
       : pickWithRegionPreference(botName, enemyHexes);
   } else {
-    // Prioritize landmarks 40% of the time
+    // Traders prioritize landmarks more aggressively (60%)
+    const landmarkPriority = personality.archetype === "trader" ? 0.6 : 0.4;
     const landmarks = enemyHexes.filter((h: any) => h.is_landmark);
-    if (landmarks.length > 0 && Math.random() < 0.4) {
+    if (landmarks.length > 0 && Math.random() < landmarkPriority) {
       target = landmarks[Math.floor(Math.random() * landmarks.length)];
     } else {
       target = pickWithRegionPreference(botName, enemyHexes);
     }
   }
 
-  // Scale attack energy with season phase
+  // Scale attack energy with season phase and archetype
   const seasonData = stmts.getSeason.get(seasonId) as any;
   const phase = seasonData?.phase ?? "War";
   let baseMin = 20, baseMax = 40;
@@ -329,6 +378,10 @@ async function tryAttack(
   else if (phase === "EscalationStage2") { baseMin = 40; baseMax = 70; }
   // During incursion, attack harder
   if (incursionRegion !== null) { baseMin += 10; baseMax += 15; }
+  // Aggressors commit more to attacks, turtles commit less
+  if (personality.archetype === "aggressor") { baseMin += 10; baseMax += 10; }
+  else if (personality.archetype === "turtle") { baseMin -= 5; baseMax -= 10; }
+
   const attackEnergy = baseMin + Math.floor(Math.random() * (baseMax - baseMin + 1));
 
   const programId = config.programId;

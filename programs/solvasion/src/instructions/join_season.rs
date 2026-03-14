@@ -1,14 +1,20 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, SeasonCounters, Player};
+use crate::state::{Season, SeasonCounters, Player, GlobalConfig};
 use crate::errors::SolvasionError;
-use crate::helpers::effective_phase;
+use crate::helpers::{effective_phase, require_treasury_funded, require_player_cap_not_reached};
 use crate::state::Phase;
 use crate::events::PlayerJoined;
 
 #[derive(Accounts)]
 pub struct JoinSeason<'info> {
-    #[account(mut)]
     pub player_wallet: Signer<'info>,
+
+    #[account(
+        seeds = [GlobalConfig::SEED],
+        bump,
+        constraint = !global_config.paused @ SolvasionError::ProgramPaused,
+    )]
+    pub global_config: Account<'info, GlobalConfig>,
 
     #[account(
         seeds = [Season::SEED, season.season_id.to_le_bytes().as_ref()],
@@ -27,7 +33,7 @@ pub struct JoinSeason<'info> {
 
     #[account(
         init,
-        payer = player_wallet,
+        payer = treasury,
         space = 8 + Player::INIT_SPACE,
         seeds = [
             Player::SEED,
@@ -38,12 +44,28 @@ pub struct JoinSeason<'info> {
     )]
     pub player: Account<'info, Player>,
 
+    /// CHECK: Treasury PDA pays rent for account creation
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
+
     pub system_program: Program<'info, System>,
 }
 
 pub fn handler(ctx: Context<JoinSeason>) -> Result<()> {
     let now = Clock::get()?.unix_timestamp;
     let season = &ctx.accounts.season;
+    let config = &ctx.accounts.global_config;
+
+    // Anti-spam: check player cap
+    require_player_cap_not_reached(config, ctx.accounts.season_counters.player_count)?;
+
+    // Treasury safety: verify sufficient balance for rent
+    let rent = Rent::get()?.minimum_balance(8 + Player::INIT_SPACE);
+    require_treasury_funded(ctx.accounts.treasury.lamports(), config, rent)?;
 
     // Verify season not ended
     let phase = effective_phase(season, now);

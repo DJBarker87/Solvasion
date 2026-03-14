@@ -45,6 +45,15 @@ pub const IDENTITY_POINT: [u8; 32] = [0u8; 32];
 /// Verify that a stored Pedersen commitment matches the opening (energy_amount, blind).
 ///
 /// Computes C' = energy_amount·G + blind·H and checks C'.0 == stored_commitment.
+/// Reject the identity point (all zeros) as a commitment value.
+pub fn reject_identity_commitment(commitment: &[u8; 32]) -> Result<()> {
+    require!(
+        *commitment != IDENTITY_POINT,
+        SolvasionError::IdentityPointCommitment
+    );
+    Ok(())
+}
+
 pub fn verify_commitment(
     stored_commitment: &[u8; 32],
     energy_amount: u32,

@@ -307,6 +307,13 @@ The project builds in phases. Do not jump ahead.
 - The `solana-curve25519` crate v2.x works with Anchor 0.32 and does NOT pull in blake3, so it avoids the edition 2024 issue.
 - Anchor automatically syncs program IDs between `declare_id!()` in lib.rs and Anchor.toml — do not manually manage these.
 
+### Anchor 0.32 TypeScript Casing Rules
+- **Methods:** Anchor converts Rust snake_case instruction names to camelCase. The conversion capitalises the letter **after** digits too: `verify_or_proof_9way` → `verifyOrProof9Way` (capital W), NOT `verifyOrProof9way`.
+- **Accounts in `.accounts({})` calls:** Use **camelCase** (e.g. `sessionKeyPda`, `playerAccount`, `systemProgram`). Anchor 0.32 expects camelCase account keys and will error with "Account `X` not provided" if you pass snake_case.
+- **Struct fields in instruction args:** Use **snake_case** (e.g. `r_point`, `c_scalar`). These are Borsh-serialized and must match the Rust field names exactly.
+- **IDL file (JSON):** Stores everything in snake_case. The TypeScript client does the camelCase conversion at runtime.
+- When in doubt, load the IDL and print `Object.keys(program.methods)` to see the exact available method names.
+
 ### Pedersen Commitments
 - The program NEVER sees per-hex energy amounts at commit time. It stores opaque 32-byte commitments and a total `energy_committed` delta. Verification only happens at reveal.
 - `increase_defence` does NOT verify the new commitment matches old + delta. The trust model is: cheating only harms the cheater (they'll fail on reveal).

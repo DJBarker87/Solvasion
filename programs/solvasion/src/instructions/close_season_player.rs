@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Player};
+use crate::state::{Season, Player, GlobalConfig};
 use crate::errors::SolvasionError;
 use crate::events::PlayerAccountClosed;
 
@@ -23,11 +23,18 @@ pub struct CloseSeasonPlayer<'info> {
         bump,
     )]
     pub player: Account<'info, Player>,
-    // remaining_accounts[0]: rent recipient (must match player.player)
+
+    /// CHECK: Treasury PDA receives rent from closed accounts
+    #[account(
+        mut,
+        seeds = [GlobalConfig::TREASURY_SEED],
+        bump,
+    )]
+    pub treasury: SystemAccount<'info>,
 }
 
-pub fn handler<'info>(
-    ctx: Context<'_, '_, 'info, 'info, CloseSeasonPlayer<'info>>,
+pub fn handler(
+    ctx: Context<CloseSeasonPlayer>,
 ) -> Result<()> {
     let season = &ctx.accounts.season;
     let player = &ctx.accounts.player;
@@ -39,21 +46,15 @@ pub fn handler<'info>(
     // Player must be finalized
     require!(player.finalized, SolvasionError::PlayerNotFinalized);
 
-    // Get rent recipient from remaining_accounts
-    require!(ctx.remaining_accounts.len() >= 1, SolvasionError::Unauthorized);
-    let recipient = &ctx.remaining_accounts[0];
-
-    // Verify recipient matches player wallet
-    require!(recipient.key() == player.player, SolvasionError::InvalidRecipient);
-
     let season_id = season.season_id;
-    let rent_returned_to = player.player;
+    let rent_returned_to = ctx.accounts.treasury.key();
 
-    // Close player account: drain lamports to recipient, zero data
+    // Close player account: drain lamports to treasury, zero data
     let player_info = ctx.accounts.player.to_account_info();
+    let treasury_info = ctx.accounts.treasury.to_account_info();
     let lamports = player_info.lamports();
     **player_info.try_borrow_mut_lamports()? = 0;
-    **recipient.try_borrow_mut_lamports()? = recipient
+    **treasury_info.try_borrow_mut_lamports()? = treasury_info
         .lamports()
         .checked_add(lamports)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
@@ -64,7 +65,7 @@ pub fn handler<'info>(
 
     emit!(PlayerAccountClosed {
         season_id,
-        player: rent_returned_to,
+        player: player.player,
         rent_returned_to,
     });
 

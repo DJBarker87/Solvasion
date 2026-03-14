@@ -1,6 +1,91 @@
 use anchor_lang::prelude::*;
-use crate::state::{Season, Phase, Player};
+use crate::state::{Season, Phase, Player, GlobalConfig, SessionKey};
 use crate::errors::SolvasionError;
+
+/// Verify that `authority` is authorized to act for the player.
+/// Accepts either:
+///   (a) authority == player.player (direct wallet signing), or
+///   (b) authority is a registered, unexpired session key for this player+season
+///       (SessionKey PDA passed via remaining_accounts).
+pub fn verify_player_authority(
+    authority_key: &Pubkey,
+    player: &Player,
+    remaining_accounts: &[AccountInfo],
+    program_id: &Pubkey,
+    season_id: u64,
+    now: i64,
+) -> Result<()> {
+    // Direct signing — authority is the player wallet
+    if *authority_key == player.player {
+        return Ok(());
+    }
+
+    // Session key mode — look for SessionKey PDA in remaining_accounts
+    let (expected_pda, _) = Pubkey::find_program_address(
+        &[
+            SessionKey::SEED,
+            season_id.to_le_bytes().as_ref(),
+            player.player.as_ref(),
+        ],
+        program_id,
+    );
+
+    for account_info in remaining_accounts.iter() {
+        if account_info.key() == expected_pda {
+            let data = account_info.try_borrow_data()?;
+            let session = SessionKey::try_deserialize(&mut &data[..])?;
+
+            require!(session.player == player.player, SolvasionError::Unauthorized);
+            require!(session.session_key == *authority_key, SolvasionError::Unauthorized);
+            require!(session.season_id == season_id, SolvasionError::Unauthorized);
+            require!(session.expires_at > now, SolvasionError::SessionKeyExpired);
+
+            return Ok(());
+        }
+    }
+
+    Err(SolvasionError::Unauthorized.into())
+}
+
+/// Verify the treasury has sufficient balance for account creation.
+/// Prevents drain attacks by requiring treasury stays above safety floor.
+/// Call this before any `init` that uses treasury as payer.
+pub fn require_treasury_funded(
+    treasury_lamports: u64,
+    config: &GlobalConfig,
+    required_rent: u64,
+) -> Result<()> {
+    let min_balance = if config.treasury_min_balance > 0 {
+        config.treasury_min_balance
+    } else {
+        GlobalConfig::DEFAULT_TREASURY_MIN
+    };
+
+    let balance_after = treasury_lamports
+        .checked_sub(required_rent)
+        .ok_or(SolvasionError::TreasuryBelowSafetyFloor)?;
+
+    require!(
+        balance_after >= min_balance,
+        SolvasionError::TreasuryBelowSafetyFloor
+    );
+
+    Ok(())
+}
+
+/// Verify the season hasn't hit the max player cap (anti-spam).
+pub fn require_player_cap_not_reached(
+    config: &GlobalConfig,
+    current_player_count: u32,
+) -> Result<()> {
+    if config.max_players_per_season > 0 {
+        require!(
+            current_player_count < config.max_players_per_season,
+            SolvasionError::MaxPlayersReached
+        );
+    }
+    Ok(())
+}
 
 /// Determine the effective season phase from timestamps.
 /// Phase is computed dynamically, not stored.
@@ -27,12 +112,21 @@ pub fn recalculate_energy(
     season: &Season,
     now: i64,
 ) -> Result<()> {
+    // Cap at season end to prevent post-season energy accrual
+    let effective_now = if season.has_actual_end {
+        std::cmp::min(now, season.actual_end)
+    } else if now >= season.season_end {
+        season.season_end
+    } else {
+        now
+    };
+
     if player.hex_count == 0 && player.landmark_count == 0 {
-        player.last_energy_update = now;
+        player.last_energy_update = effective_now;
         return Ok(());
     }
 
-    let seconds_elapsed = now
+    let seconds_elapsed = effective_now
         .checked_sub(player.last_energy_update)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
 
@@ -72,18 +166,19 @@ pub fn recalculate_energy(
         _ => {}
     }
 
-    // Floor division: (seconds * rate) / 3600
+    // Floor division: (seconds * rate) / rate_divisor
     let energy_earned = (seconds_elapsed as u64)
         .checked_mul(total_rate)
         .ok_or(SolvasionError::ArithmeticOverflow)?
-        / 3600;
+        .checked_div(season.rate_divisor as u64)
+        .ok_or(SolvasionError::ArithmeticOverflow)?;
 
     let new_balance = (player.energy_balance as u64)
         .checked_add(energy_earned)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
 
     player.energy_balance = std::cmp::min(new_balance, season.energy_cap as u64) as u32;
-    player.last_energy_update = now;
+    player.last_energy_update = effective_now;
 
     Ok(())
 }
@@ -134,12 +229,21 @@ pub fn recalculate_points(
     season: &Season,
     now: i64,
 ) -> Result<()> {
+    // Cap at season end to prevent post-season point accrual
+    let effective_now = if season.has_actual_end {
+        std::cmp::min(now, season.actual_end)
+    } else if now >= season.season_end {
+        season.season_end
+    } else {
+        now
+    };
+
     if player.hex_count == 0 && player.landmark_count == 0 {
-        player.last_points_update = now;
+        player.last_points_update = effective_now;
         return Ok(());
     }
 
-    let seconds_elapsed = now
+    let seconds_elapsed = effective_now
         .checked_sub(player.last_points_update)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
 
@@ -173,12 +277,13 @@ pub fn recalculate_points(
     let points_earned = (seconds_elapsed as u64)
         .checked_mul(total_rate)
         .ok_or(SolvasionError::ArithmeticOverflow)?
-        / 3600;
+        .checked_div(season.rate_divisor as u64)
+        .ok_or(SolvasionError::ArithmeticOverflow)?;
 
     player.points = player.points
         .checked_add(points_earned)
         .ok_or(SolvasionError::ArithmeticOverflow)?;
-    player.last_points_update = now;
+    player.last_points_update = effective_now;
 
     Ok(())
 }

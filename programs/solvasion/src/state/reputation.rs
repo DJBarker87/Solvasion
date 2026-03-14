@@ -14,6 +14,7 @@ pub struct Reputation {
     pub best_season_rank: u32,
     pub best_season_score: u64,
     pub total_clutch_defences: u64,
+    pub last_season_updated: u64,
 }
 
 impl Reputation {
